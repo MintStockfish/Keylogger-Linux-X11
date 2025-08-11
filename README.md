@@ -38,8 +38,8 @@ sudo pacman -S base-devel cmake libx11 libxi
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/MintStockfish/KeyLogger
-    cd KeyLogger
+    git clone https://github.com/MintStockfish/Keylogger-Linux-X11
+    cd Keylogger-Linux-X11
     ```
 
 2.  **Create a build directory:**
