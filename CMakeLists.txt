@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(keylogger
     src/keylogger.cpp
+    src/utils/processTrackingHelper/processTracking.cpp
     src/utils/cyrillicHelper/cyrillicHelper.cpp
     src/utils/keyPressHelper/keyPressHelper.cpp
     src/utils/specialKeysHelper/specialKeysHelper.cpp

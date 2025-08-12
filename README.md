@@ -1,6 +1,6 @@
 # C++ Keylogger for X11
 
-This is a simple passive keylogger for X11-based operating systems (Linux), written in C++. The program captures keystrokes using the XInput2 extension, correctly handling both Cyrillic and Latin layouts, as well as the state of modifier keys (Shift, Caps Lock).
+This is a simple passive keylogger for X11-based operating systems (Linux), written in C++. The program captures keystrokes using the XInput2 extension, correctly handling both Cyrillic and Latin layouts, as well as the state of modifier keys (Shift, Caps Lock). Tracking active window where user is typing.
 
 All captured input is written to `log.txt`. The program terminates when the `Escape` key is pressed.
 
@@ -75,7 +75,8 @@ sudo pacman -S base-devel cmake libx11 libxi
 ├── README.md           # This file
 ├── src/                # Source code directory
 │   ├── keylogger.cpp   # Main file with the main() function
-│   └── utils/          # Helper modules
+│   ├── utils/          # Helper modules
+│   └── ├── processTrackingHelper/
 │       ├── cyrillicHelper/
 │       ├── keyPressHelper/
 │       └── specialKeysHelper/
