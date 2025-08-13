@@ -3,7 +3,7 @@
 #include "../specialKeysHelper/specialKeysHelper.hpp" 
 #include <cstring> 
 
-KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbStateRec& state) {
+KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbStateRec& state, bool ctrlPressed) {
     KeyPressResult result;
 
     bool is_shift_pressed = (state.mods & ShiftMask);
@@ -19,6 +19,11 @@ KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbS
         return result; 
     }
 
+    if(keysym == XK_c || keysym == XK_C && ctrlPressed){
+        result.should_grabBuffer = true;   
+        return result;
+    }
+
     if (keysym == XK_Escape) {
         result.should_exit = true;
         result.printable_name = "Escape";
@@ -29,6 +34,10 @@ KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbS
     if (!special_char.empty()) {
         result.char_to_log = special_char;
         result.printable_name = result.char_to_log.c_str(); 
+        ctrlPressed = false;
+        if (keysym == XK_Control_L) {
+            ctrlPressed = true;
+        } 
     } else {
         const char* cyrillic_char = keysym_to_utf8_cyrillic(keysym);
         if (cyrillic_char) {

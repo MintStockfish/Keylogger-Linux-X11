@@ -16,7 +16,7 @@ add_executable(keylogger
 )
 
 find_package(X11 REQUIRED)
-
+find_program(XCLIP_EXECUTABLE NAMES xclip)
 
 if(X11_FOUND)
     target_include_directories(keylogger PRIVATE ${X11_INCLUDE_DIR})

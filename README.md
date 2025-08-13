@@ -18,19 +18,19 @@ To build and run this project, you will need:
 
 ```bash
 sudo apt update
-sudo apt install build-essential cmake libx11-dev libxi-dev
+sudo apt install build-essential cmake libx11-dev libxi-dev xclip
 ```
 
 #### On Fedora / CentOS:
 
 ```bash
-sudo dnf install cmake gcc-c++ libX11-devel libXi-devel
+sudo dnf install cmake gcc-c++ libX11-devel libXi-devel xclip
 ```
 
 #### On Arch Linux:
 
 ```bash
-sudo pacman -S base-devel cmake libx11 libxi
+sudo pacman -S base-devel cmake libx11 libxi xclip
 ```
 
 ## Building and Running
