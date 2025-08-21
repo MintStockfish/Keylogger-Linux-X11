@@ -14,4 +14,4 @@ struct KeyPressResult {
     bool should_grabScreen = false;
 };
 
-KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbStateRec& state, bool& ctrlPressed);
+KeyPressResult processKeyPress(Display* display, XIRawEvent* rawev, bool& ctrlPressed);

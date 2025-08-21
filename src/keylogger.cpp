@@ -97,13 +97,11 @@ int main() {
     std::cout << "Нажмите Escape для выхода." << std::endl;
 
     std::string log_buffer = "";
-    XkbStateRec state;
     XEvent xevent;
     std::string windowName;
     bool ctrlPressed = false;
 
     while (true) {
-        XkbGetState(display, XkbUseCoreKbd, &state);
         XNextEvent(display, &xevent);
 
         std::string temp = windowName;
@@ -118,7 +116,7 @@ int main() {
             if (xevent.xcookie.evtype == XI_RawKeyPress) {
                 XIRawEvent* rawev = (XIRawEvent*)xevent.xcookie.data;
                 
-                KeyPressResult result = process_key_press(display, rawev, state, ctrlPressed);
+                KeyPressResult result = processKeyPress(display, rawev, ctrlPressed);
 
                 if (result.should_exit) {
                     std::cout << "\nНажата клавиша: " << result.printable_name << std::endl;

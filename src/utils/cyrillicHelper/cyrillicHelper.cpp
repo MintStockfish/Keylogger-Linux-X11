@@ -2,7 +2,7 @@
 #include <X11/XKBlib.h>
 #include "cyrillicHelper.hpp"
 
-const char* keysym_to_utf8_cyrillic(KeySym keysym) {
+const char* keysymToUtf8Cyrillic(KeySym keysym) {
     switch (keysym) {
         case XK_Cyrillic_a:        return "а";
         case XK_Cyrillic_be:       return "б";
