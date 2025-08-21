@@ -34,6 +34,7 @@ std::string handleSpecialKeys(KeySym keysym) {
         case XK_parenright: return ")";
         case XK_at:         return "@";
         case XK_BackSpace:  return " BackSpace ";
+        case XK_Control_L:  return "ctrl";
         default:            return ""; 
     }
 }

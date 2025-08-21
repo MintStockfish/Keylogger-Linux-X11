@@ -121,7 +121,7 @@ int main() {
                 KeyPressResult result = process_key_press(display, rawev, state, ctrlPressed);
 
                 if (result.should_exit) {
-                    std::cout << "Нажата клавиша: " << result.printable_name << std::endl;
+                    std::cout << "\nНажата клавиша: " << result.printable_name << std::endl;
                     XFreeEventData(display, &xevent.xcookie);
                     break;
                 }
@@ -132,9 +132,22 @@ int main() {
                     continue;
                 }
 
-                // if (result.printable_name) {
-                //     std::cout << "Нажата клавиша: " << result.printable_name << std::endl;
-                // }
+                if (result.should_grabScreen) {
+                    std::cout << "PrintScreen нажат. Делаю скриншот..." << std::endl;
+
+                    std::string filename = getCurrentTimestamp();
+                    std::string command = "scrot 'screenshots/screenshot_" + filename + ".png'";
+
+                    system(command.c_str());
+                    system("mkdir -p screenshots");
+
+                    std::cout << "Скриншот сохранен в папке 'screenshots'." << std::endl;
+                    continue;
+                }
+
+                if (result.printable_name) {
+                    std::cout << "Нажата клавиша: " << result.printable_name << std::endl;
+                }
 
                 if (!result.char_to_log.empty()) {
                     if (result.char_to_log == "\b" && !log_buffer.empty()) {

