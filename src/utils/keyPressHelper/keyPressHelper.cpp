@@ -24,7 +24,6 @@ KeyPressResult processKeyPress(Display* display, XIRawEvent* rawev, bool& ctrlPr
 
     if ((keysym == XK_c || keysym == XK_C || keysym == XK_Cyrillic_es || keysym == XK_Cyrillic_ES) && ctrlPressed) {
         result.should_grabBuffer = true;   
-        ctrlPressed = false;
         return result;
     }
 
@@ -46,8 +45,6 @@ KeyPressResult processKeyPress(Display* display, XIRawEvent* rawev, bool& ctrlPr
         
         default:
         {
-            ctrlPressed = false;
-
             std::string special_char = handleSpecialKeys(keysym);
             if (!special_char.empty()) {
                 result.char_to_log = special_char;

