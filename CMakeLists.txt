@@ -9,10 +9,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(keylogger
     src/keylogger.cpp
-    src/utils/processTrackingHelper/processTracking.cpp
+    src/app/application.cpp
+    src/utils/windowTrackingHelper/windowTracking.cpp
     src/utils/cyrillicHelper/cyrillicHelper.cpp
-    src/utils/keyPressHelper/keyPressHelper.cpp
     src/utils/specialKeysHelper/specialKeysHelper.cpp
+    src/utils/keyboardEventHelper/keyboardEventHelper.cpp
+    src/utils/common/common.cpp
 )
 
 find_package(X11 REQUIRED)

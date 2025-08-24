@@ -7,7 +7,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
-#include "processTracking.hpp"
+#include "./windowTracking.hpp"
 
 
 std::string get_window_title(Display* display, Window window) {

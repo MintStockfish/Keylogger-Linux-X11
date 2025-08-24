@@ -1,16 +1,32 @@
-# C++ Keylogger for X11
+# Keylogger-Linux-X11
 
-This is a simple passive keylogger for X11-based operating systems (Linux), written in C++. The program captures keystrokes using the XInput2 extension, correctly handling both Cyrillic and Latin layouts, as well as the state of modifier keys (Shift, Caps Lock). Tracking an active window where user is typing. When a user presses "PrtSc" button, screenshot is automatically saved to screenshots folder.
+![Language](https://img.shields.io/badge/Language-C%2B%2B-blue.svg)
+![Platform](https://img.shields.io/badge/Platform-Linux-lightgrey.svg)
 
-All captured input is written to `log.txt`. The program terminates when the `Escape` key is pressed.
+A passive keylogger for Linux operating systems using the X11 display server. This tool is written in modern C++ and designed as an educational example of how to interact with the X server at a low level.
 
-## Dependencies
+The program captures keystrokes using the `XInput2` extension, correctly handling various keyboard layouts (e.g., Cyrillic, Latin) and modifier states (Shift, Caps Lock). It also tracks the active window title, captures clipboard content on `Ctrl+C`, and takes screenshots when the `PrintScreen` key is pressed.
+
+> **Disclaimer:** This software is intended for educational purposes and security research only. Using it to monitor individuals without their explicit consent is illegal and unethical. The author is not responsible for any malicious use of this program.
+
+## Features
+
+- **Passive Keystroke Logging:** Captures all keyboard events without grabbing the keyboard, meaning it doesn't interfere with other applications.
+- **Multi-Layout Support:** Correctly interprets characters from different keyboard layouts (tested with Latin and Cyrillic).
+- **Active Window Tracking:** Logs the title of the window where the user is currently typing.
+- **Clipboard Capture:** Logs the content of the clipboard when `Ctrl+C` is pressed.
+- **Screenshot on PrintScreen:** Automatically saves a screenshot to the `screenshots/` directory when the `PrintScreen` key is hit.
+- **Clean Output:** All captured data is saved to a `log.txt` file in the project's root directory.
+- **Safe Exit:** The program terminates gracefully when the `Escape` key is pressed.
+
+## Prerequisites
 
 To build and run this project, you will need:
 
 - **CMake** (version 3.10 or higher)
-- A modern C++ compiler (e.g., **GCC/g++** or **Clang**)
+- A modern C++ compiler (e.g., **g++** or **clang**)
 - Development libraries for **X11** and **XInput2**
+- Helper tools: **`xclip`** (for clipboard access) and **`scrot`** (for screenshots)
 
 ### Installing Dependencies
 
@@ -21,7 +37,7 @@ sudo apt update
 sudo apt install build-essential cmake libx11-dev libxi-dev xclip scrot
 ```
 
-#### On Fedora / CentOS:
+#### On Fedora / CentOS / RHEL:
 
 ```bash
 sudo dnf install cmake gcc-c++ libX11-devel libXi-devel xclip scrot
@@ -43,42 +59,53 @@ sudo pacman -S base-devel cmake libx11 libxi xclip scrot
     ```
 
 2.  **Create a build directory:**
+    This keeps the project root clean from build artifacts.
 
     ```bash
     mkdir build && cd build
     ```
 
-3.  **Configure the project with CMake:**
+3.  **Configure and build the project:**
 
     ```bash
     cmake ..
-    ```
-
-4.  **Compile the project:**
-
-    ```bash
     make
     ```
 
-5.  **Run the keylogger:**
+4.  **Run the keylogger:**
     The executable `keylogger` will be created in the `build` directory.
+
     ```bash
     ./keylogger
     ```
-    The program will start capturing input in the background. Press `Escape` to terminate the program and save the log to `log.txt`.
+
+    The program will now run in your terminal, capturing input passively. The log file (`log.txt`) and `screenshots/` directory will be created in the project's root folder (the one containing `src/`).
+
+5.  **Stop the program:**
+    Press the `Escape` key in any window to terminate the program and save the final log.
+
+## How It Works
+
+The keylogger attaches to the root window of the X server and listens for raw keyboard events (`XI_RawKeyPress`, `XI_RawKeyRelease`) using the **XInput2** extension. This method is "passive" because the program only listens to events as they are delivered by the server, rather than intercepting or "grabbing" the keyboard, which would prevent other applications from receiving input. This makes the logger undetectable from a user experience perspective.
 
 ## Project Structure
 
+The project follows a clean, modular structure to separate concerns.
+
 ```
 .
-├── CMakeLists.txt      # CMake build script
-├── README.md           # This file
-├── src/                # Source code directory
-│   ├── keylogger.cpp   # Main file with the main() function
-│   ├── utils/          # Helper modules
-│   └── ├── processTrackingHelper/
-│       ├── cyrillicHelper/
-│       ├── keyPressHelper/
-│       └── specialKeysHelper/
-└── .gitignore          # Git ignore file
+├── CMakeLists.txt              # CMake build script
+├── README.md                   # This file
+├── src/                        # Source code directory
+│   ├── main.cpp                # Main entry point - creates and runs the Application
+│   ├── app/                    # Core application logic
+│   │   ├── application.hpp
+│   │   └── application.cpp
+│   └── utils/                  # Helper modules and utilities
+│       ├── common/             # Common functions (exec, timestamp, etc.)
+│       ├── keyboardEventHelper/  # Logic for processing keyboard events
+│       ├── cyrillicHelper/       # Mapping for Cyrillic keysyms
+│       ├── specialKeysHelper/  # Mapping for special keys (Enter, Space, etc.)
+│       └── windowTrackingHelper/ # Logic for getting the active window title
+└── .gitignore                  # Git ignore file
 ```
