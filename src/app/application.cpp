@@ -86,9 +86,9 @@ void Application::handleAction(const ProcessedEvent& result) {
 
         case KeyboardAction::CAPTURE_SCREEN: {
             std::cout << "PrintScreen нажат. Делаю скриншот..." << std::endl;
-            system("mkdir -p ../screenshots");
+            system("mkdir -p screenshots");
             std::string filename = getCurrentTimestamp();
-            std::string command = "scrot '../screenshots/screenshot_" + filename + ".png'";
+            std::string command = "scrot 'screenshots/screenshot_" + filename + ".png'";
             system(command.c_str());
             std::cout << "Скриншот сохранен в папке 'screenshots'." << std::endl;
             break;
