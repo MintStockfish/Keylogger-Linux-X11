@@ -17,17 +17,14 @@ ProcessedEvent KeyboardEventHandler::handleEvent(XEvent& event) {
         case XI_RawKeyPress: {
             XIRawEvent* rawev = (XIRawEvent*)event.xcookie.data;
             ProcessedEvent result = processRawKeyPress(rawev);
-            XFreeEventData(display, &event.xcookie);
             return result;
         }
         case XI_RawKeyRelease: {
             XIRawEvent* rawev = (XIRawEvent*)event.xcookie.data;
             processRawKeyRelease(rawev);
-            XFreeEventData(display, &event.xcookie);
             break;
         }
         default:
-            XFreeEventData(display, &event.xcookie);
             break;
     }
     

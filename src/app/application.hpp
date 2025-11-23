@@ -3,6 +3,7 @@
 
 #include <X11/Xlib.h>
 #include "../utils/keyboardEventHelper/keyboardEventHelper.hpp" 
+#include "../utils/mouseTrackerHelper/mouseTracker.hpp"
 #include <string>
 
 class Application {
@@ -26,6 +27,7 @@ private:
     bool isRunning_ = true;
 
     KeyboardEventHandler keyboardHandler_;
+    MouseTracker mouseTracker_;
     std::string logBuffer_;
     std::string currentWindowName_;
 };

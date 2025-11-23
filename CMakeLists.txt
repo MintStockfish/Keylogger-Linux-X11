@@ -14,6 +14,7 @@ add_executable(keylogger
     src/utils/cyrillicHelper/cyrillicHelper.cpp
     src/utils/specialKeysHelper/specialKeysHelper.cpp
     src/utils/keyboardEventHelper/keyboardEventHelper.cpp
+    src/utils/mouseTrackerHelper/mouseTracker.cpp
     src/utils/common/common.cpp
 )
 

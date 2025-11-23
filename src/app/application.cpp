@@ -18,6 +18,7 @@ Application::~Application() {
         trimLeadingNewlines(logBuffer_);
         writeLog(logBuffer_, "log.txt"); 
         std::cout << "Лог записан в log.txt" << std::endl;
+        mouseTracker_.saveTrajectory("mouse_log.txt");
         XCloseDisplay(display_);
     }
 }
@@ -34,6 +35,7 @@ void Application::initializeX11() {
     unsigned char mask_bytes[XI_LASTEVENT / 8 + 1] = {0}; 
     XISetMask(mask_bytes, XI_RawKeyPress);
     XISetMask(mask_bytes, XI_RawKeyRelease);
+    XISetMask(mask_bytes, XI_RawMotion);
     
     evmask.deviceid = XIAllMasterDevices; 
     evmask.mask_len = sizeof(mask_bytes);
@@ -53,10 +55,22 @@ void Application::processEvents() {
     XEvent xevent;
     XNextEvent(display_, &xevent);
 
+    if (xevent.type == GenericEvent) {
+        if (!XGetEventData(display_, &xevent.xcookie)) {
+            return;
+        }
+    }
+
     updateActiveWindow();
+    
+    mouseTracker_.handleEvent(xevent);
         
     ProcessedEvent result = keyboardHandler_.handleEvent(xevent);
     handleAction(result);
+
+    if (xevent.type == GenericEvent) {
+        XFreeEventData(display_, &xevent.xcookie);
+    }
 }
 
 void Application::updateActiveWindow() {
