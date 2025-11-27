@@ -7,16 +7,35 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
+# Find Qt6
+find_package(Qt6 COMPONENTS Widgets REQUIRED)
+
+# --- CLI Keylogger ---
 add_executable(keylogger
     src/keylogger.cpp
     src/app/application.cpp
-    src/utils/windowTrackingHelper/windowTracking.cpp
+    src/utils/common/common.cpp
+    src/utils/keyboardEventHelper/keyboardEventHelper.cpp
     src/utils/cyrillicHelper/cyrillicHelper.cpp
     src/utils/specialKeysHelper/specialKeysHelper.cpp
-    src/utils/keyboardEventHelper/keyboardEventHelper.cpp
+    src/utils/windowTrackingHelper/windowTracking.cpp
     src/utils/mouseTrackerHelper/mouseTracker.cpp
-    src/utils/common/common.cpp
 )
+
+target_link_libraries(keylogger PRIVATE X11 Xi)
+
+# --- GUI Application ---
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
+add_executable(keylogger-gui
+    src/ui/main_ui.cpp
+    src/ui/MainWindow.cpp
+    src/ui/BrutalistButton.cpp
+)
+
+target_link_libraries(keylogger-gui PRIVATE Qt6::Widgets)
 
 find_package(X11 REQUIRED)
 find_program(XCLIP_EXECUTABLE NAMES xclip)
