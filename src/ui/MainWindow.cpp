@@ -54,6 +54,8 @@ void MainWindow::setupUi() {
     sidebar->setMinimumWidth(350);  
     sidebar->setMaximumWidth(500);  
     
+    sidebarBorder = new AnimatedBorder(centralWidget);
+    
     QVBoxLayout *sidebarLayout = new QVBoxLayout(sidebar);
     sidebarLayout->setSpacing(25);  
     sidebarLayout->setContentsMargins(30, 50, 30, 50);
@@ -198,6 +200,23 @@ void MainWindow::setupUi() {
     
     contentStack->setCurrentIndex(0);
     
+    pageOpacity = new QGraphicsOpacityEffect(contentStack);
+    contentStack->setGraphicsEffect(pageOpacity);
+    pageOpacity->setOpacity(1.0);
+    
+    pageTransition = new QPropertyAnimation(pageOpacity, "opacity", this);
+    pageTransition->setDuration(200);
+    pageTransition->setEasingCurve(QEasingCurve::InOutQuad);
+    
+    connect(pageTransition, &QPropertyAnimation::finished, this, [this]() {
+        if (pageOpacity->opacity() == 0.0) {
+            contentStack->setCurrentIndex(targetPageIndex);
+            pageTransition->setStartValue(0.0);
+            pageTransition->setEndValue(1.0);
+            pageTransition->start();
+        }
+    });
+    
     connect(btnLogs, &BrutalistButton::clicked, this, [this]() { switchToPage(1); });
     connect(btnScreenshots, &BrutalistButton::clicked, this, [this]() { switchToPage(2); });
     connect(btnTrajectory, &BrutalistButton::clicked, this, [this]() { switchToPage(3); });
@@ -205,10 +224,24 @@ void MainWindow::setupUi() {
 
     mainHLayout->addWidget(sidebar);
     mainHLayout->addWidget(contentStack, 1);
+    
+    sidebarBorder->setGeometry(sidebar->width() - 3, 0, 6, height());
+    sidebarBorder->raise();
 }
 
 void MainWindow::switchToPage(int index) {
-    contentStack->setCurrentIndex(index);
+    if (contentStack->currentIndex() == index) {
+        return;
+    }
+    
+    if (pageTransition->state() == QPropertyAnimation::Running) {
+        pageTransition->stop();
+    }
+    
+    targetPageIndex = index;
+    pageTransition->setStartValue(1.0);
+    pageTransition->setEndValue(0.0);
+    pageTransition->start();
 }
 
 void MainWindow::applyStyles() {
@@ -223,9 +256,8 @@ void MainWindow::applyStyles() {
     QString sidebarStyle = QString(
         "#sidebar { "
         "   background-color: %1; "
-        "   border-right: 4px solid %2; "
         "}"
-    ).arg(sidebarBg).arg(borderDark);
+    ).arg(sidebarBg);
     
     centralWidget->findChild<QWidget*>("sidebar")->setStyleSheet(sidebarStyle);
 
@@ -281,6 +313,13 @@ void MainWindow::applyStyles() {
 
 void MainWindow::resizeEvent(QResizeEvent *event) {
     QMainWindow::resizeEvent(event);
+    
+    if (sidebarBorder) {
+        QWidget *sidebar = centralWidget->findChild<QWidget*>("sidebar");
+        if (sidebar) {
+            sidebarBorder->setGeometry(sidebar->width() - 3, 0, 6, height());
+        }
+    }
 }
 
 void MainWindow::paintEvent(QPaintEvent *event) {

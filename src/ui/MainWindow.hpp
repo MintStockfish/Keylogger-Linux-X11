@@ -13,6 +13,7 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include "BrutalistButton.hpp"
+#include "AnimatedBorder.hpp"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -42,6 +43,12 @@ private:
     BrutalistButton *btnClipboard;
 
     QMovie *bgMovie;
+    
+    QGraphicsOpacityEffect *pageOpacity;
+    QPropertyAnimation *pageTransition;
+    int targetPageIndex;
+    
+    AnimatedBorder *sidebarBorder;
 
 protected:
     void resizeEvent(QResizeEvent *event) override;

@@ -33,6 +33,7 @@ add_executable(keylogger-gui
     src/ui/main_ui.cpp
     src/ui/MainWindow.cpp
     src/ui/BrutalistButton.cpp
+    src/ui/AnimatedBorder.cpp
 )
 
 target_link_libraries(keylogger-gui PRIVATE Qt6::Widgets)
