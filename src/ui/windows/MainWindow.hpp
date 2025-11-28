@@ -12,8 +12,8 @@
 #include <QResizeEvent>
 #include <QPainter>
 #include <QPaintEvent>
-#include "BrutalistButton.hpp"
-#include "AnimatedBorder.hpp"
+#include "../components/BrutalistButton.hpp"
+#include "../components/AnimatedBorder.hpp"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT

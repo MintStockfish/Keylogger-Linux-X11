@@ -11,8 +11,8 @@ AnimatedBorder::AnimatedBorder(QWidget *parent)
     setAttribute(Qt::WA_TranslucentBackground);
     
     offsetAnimation = new QPropertyAnimation(this, "offset", this);
-    offsetAnimation->setDuration(300);
-    offsetAnimation->setEasingCurve(QEasingCurve::InOutQuad);
+    offsetAnimation->setDuration(600);
+    offsetAnimation->setEasingCurve(QEasingCurve::InOutCubic);
     
     connect(offsetAnimation, &QPropertyAnimation::valueChanged, this, [this]() {
         update();
@@ -36,18 +36,20 @@ void AnimatedBorder::setOffset(qreal offset) {
 void AnimatedBorder::startRandomMove() {
     bool moveUp = QRandomGenerator::global()->bounded(2) == 0;
     
+    int randomDistance = QRandomGenerator::global()->bounded(15, 60);
+    
     qreal currentOffset = m_offset;
+    
+    while (currentOffset < 0) currentOffset += 11;
+    while (currentOffset >= 11) currentOffset -= 11;
+    
     qreal newOffset;
-    
     if (moveUp) {
-        newOffset = currentOffset - 5;
+        newOffset = currentOffset - randomDistance;
     } else {
-        newOffset = currentOffset + 5;
+        newOffset = currentOffset + randomDistance;
     }
-    
-    while (newOffset < 0) newOffset += 10;
-    while (newOffset >= 10) newOffset -= 10;
-    
+        
     offsetAnimation->stop();
     offsetAnimation->setStartValue(currentOffset);
     offsetAnimation->setEndValue(newOffset);
@@ -61,7 +63,7 @@ void AnimatedBorder::paintEvent(QPaintEvent *event) {
     painter.setRenderHint(QPainter::Antialiasing);
     
     QPen pen;
-    pen.setColor(QColor(0, 0, 0, 188));
+    pen.setColor(QColor(0, 0, 0, 170));
     pen.setWidth(6);
     
     QVector<qreal> dashes;
