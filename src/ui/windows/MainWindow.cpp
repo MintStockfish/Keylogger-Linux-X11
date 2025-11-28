@@ -238,6 +238,18 @@ void MainWindow::switchToPage(int index) {
         pageTransition->stop();
     }
     
+    btnLogs->setActive(false);
+    btnScreenshots->setActive(false);
+    btnTrajectory->setActive(false);
+    btnClipboard->setActive(false);
+    
+    switch (index) {
+        case 1: btnLogs->setActive(true); break;
+        case 2: btnScreenshots->setActive(true); break;
+        case 3: btnTrajectory->setActive(true); break;
+        case 4: btnClipboard->setActive(true); break;
+    }
+    
     targetPageIndex = index;
     pageTransition->setStartValue(1.0);
     pageTransition->setEndValue(0.0);

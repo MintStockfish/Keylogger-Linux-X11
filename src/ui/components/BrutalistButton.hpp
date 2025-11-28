@@ -12,6 +12,9 @@ class BrutalistButton : public QWidget {
 public:
     BrutalistButton(const QString& text, const QString& color, QWidget* parent = nullptr);
     
+    void setActive(bool active);
+    bool isButtonActive() const { return isActive; }
+    
 signals:
     void clicked();
 
@@ -26,6 +29,7 @@ private:
     QFrame* shadow;
     bool isPressed;
     bool isHovered;
+    bool isActive;
     QString buttonColor;
     
     int normalOffsetX = 0;
@@ -34,4 +38,6 @@ private:
     int hoverOffsetY = 3;
     int pressedOffsetX = 6;
     int pressedOffsetY = 6;
+    int activeOffsetX = 5;
+    int activeOffsetY = 5;
 };

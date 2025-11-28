@@ -1,7 +1,7 @@
 #include "BrutalistButton.hpp"
 
 BrutalistButton::BrutalistButton(const QString& text, const QString& color, QWidget* parent)
-    : QWidget(parent), isPressed(false), isHovered(false), buttonColor(color) {
+    : QWidget(parent), isPressed(false), isHovered(false), isActive(false), buttonColor(color) {
     
     setFixedHeight(76);  
     
@@ -13,9 +13,9 @@ BrutalistButton::BrutalistButton(const QString& text, const QString& color, QWid
     button->setFixedHeight(70); 
     button->setStyleSheet(
         QString("QPushButton { "
-        "   font-family: 'Arial', sans-serif; "
-        "   font-size: 16px; "
-        "   font-weight: bold; "
+        "   font-family: 'Arial Black', 'Arial', sans-serif; "
+        "   font-size: 18px; "
+        "   font-weight: 900; "
         "   color: black; "
         "   border: 3px solid black; "
         "   padding: 10px; "
@@ -42,8 +42,15 @@ BrutalistButton::BrutalistButton(const QString& text, const QString& color, QWid
 
 void BrutalistButton::updatePosition() {
     int offsetX, offsetY;
+    int buttonHeight = 70;
+    int buttonWidth = width() - 6;
     
-    if (isPressed) {
+    if (isActive) {
+        offsetX = activeOffsetX;
+        offsetY = activeOffsetY;
+        buttonHeight = 72;  
+        buttonWidth = width() - 4;
+    } else if (isPressed) {
         offsetX = pressedOffsetX;
         offsetY = pressedOffsetY;
     } else if (isHovered) {
@@ -54,7 +61,14 @@ void BrutalistButton::updatePosition() {
         offsetY = normalOffsetY;
     }
     
-    button->setGeometry(offsetX, offsetY, width() - 6, 70);
+    button->setGeometry(offsetX, offsetY, buttonWidth, buttonHeight);
+}
+
+void BrutalistButton::setActive(bool active) {
+    if (isActive != active) {
+        isActive = active;
+        updatePosition();
+    }
 }
 
 bool BrutalistButton::event(QEvent* e) {
