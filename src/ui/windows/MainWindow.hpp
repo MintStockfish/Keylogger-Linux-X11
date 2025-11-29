@@ -65,6 +65,7 @@ private:
     void switchToPage(int index);
     void loadScreenshots(); 
     void clearScreenshotsDirectory(); 
+    void loadClipboardEntries();
 
     QWidget *centralWidget;
     QLabel *titleLabel;
@@ -90,6 +91,9 @@ private:
     QWidget* screenshotsContainer;
     QGridLayout* screenshotsGrid;
     QFileSystemWatcher *fileWatcher;
+    
+    QWidget* clipboardContainer;
+    QVBoxLayout* clipboardEntriesLayout;
     
     AnimatedBorder *sidebarBorder;
 

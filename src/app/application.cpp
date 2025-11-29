@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <functional>
+#include <fstream>
 
 #include "../utils/common/common.hpp"
 #include "../utils/windowTrackingHelper/windowTracking.hpp"
@@ -110,9 +111,12 @@ void Application::handleAction(const ProcessedEvent& result) {
         case KeyboardAction::CAPTURE_CLIPBOARD: {
             std::string clipboard_text = exec("xclip -selection clipboard -o");
             std::cout << "Copied: " << clipboard_text << std::endl;
-            std::string logMsg = "\n\n" + getCurrentTimestamp() + " - Copied:[\n" + clipboard_text + "\n]\n";
-            logBuffer_ += logMsg;
-            if (onKeyPress_) onKeyPress_("[Clipboard: " + clipboard_text + "]");
+            
+            std::ofstream clipFile("clipboard.txt", std::ios::app);
+            if (clipFile.is_open()) {
+                clipFile << getCurrentTimestamp() << " | " << clipboard_text << "\n";
+                clipFile.close();
+            }
             break;
         }
 

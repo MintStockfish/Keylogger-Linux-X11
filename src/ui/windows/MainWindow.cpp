@@ -10,17 +10,43 @@
 #include <QDir>
 #include <QDateTime>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QScrollBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), colorManager(new WindowColorManager()) {
     clearScreenshotsDirectory(); 
     
+    QFile::remove("clipboard.txt");
+    QFile emptyClip("clipboard.txt");
+    emptyClip.open(QIODevice::WriteOnly);
+    emptyClip.close();
+    
     fileWatcher = new QFileSystemWatcher(this);
     fileWatcher->addPath("screenshots");
+    
+    QString currentPath = QDir::currentPath();
+    fileWatcher->addPath(currentPath);
+    fileWatcher->addPath("clipboard.txt");
 
     connect(fileWatcher, &QFileSystemWatcher::directoryChanged, this, [this](const QString &path) {
-        QTimer::singleShot(500, this, &MainWindow::loadScreenshots);
+        if (path.contains("screenshots")) {
+            QTimer::singleShot(500, this, &MainWindow::loadScreenshots);
+        } else {
+            QTimer::singleShot(100, this, &MainWindow::loadClipboardEntries);
+        }
+    });
+    
+    connect(fileWatcher, &QFileSystemWatcher::fileChanged, this, [this](const QString &path) {
+        if (path.contains("clipboard")) {
+            QTimer::singleShot(100, this, &MainWindow::loadClipboardEntries);
+
+            QTimer::singleShot(200, this, [this]() {
+                if (!fileWatcher->files().contains("clipboard.txt")) {
+                    fileWatcher->addPath("clipboard.txt");
+                }
+            });
+        }
     });
     
     setupUi();
@@ -141,7 +167,54 @@ void MainWindow::setupUi() {
     
     loadScreenshots();
     PlaceholderPageWidget *trajectoryPage = new PlaceholderPageWidget("MOUSE TRAJECTORY", "#FFD600", "Mouse trajectory visualization will appear here", this);
-    PlaceholderPageWidget *clipboardPage = new PlaceholderPageWidget("CLIPBOARD", "#00FF85", "Clipboard logs will appear here", this);
+    
+    // Page 4: Clipboard
+    QWidget *clipboardPage = new QWidget(this);
+    QVBoxLayout *clipboardLayout = new QVBoxLayout(clipboardPage);
+    clipboardLayout->setContentsMargins(20, 20, 20, 20);
+    clipboardLayout->setAlignment(Qt::AlignTop);
+    
+    QLabel *clipboardTitle = new QLabel("CLIPBOARD", this);
+    clipboardTitle->setStyleSheet("font-size: 48px; font-weight: bold; color: #666; margin-bottom: 20px;");
+    clipboardTitle->setAlignment(Qt::AlignCenter);
+    clipboardLayout->addWidget(clipboardTitle);
+    
+    QScrollArea *clipboardScrollArea = new QScrollArea(this);
+    clipboardScrollArea->setWidgetResizable(true);
+    clipboardScrollArea->setFrameShape(QFrame::NoFrame);
+    clipboardScrollArea->setStyleSheet(
+        "QScrollArea { background: transparent; border: none; }"
+        "QScrollBar:vertical {"
+        "    background: #1a1a1a;"
+        "    width: 12px;"
+        "    border: 1px solid #333;"
+        "}"
+        "QScrollBar::handle:vertical {"
+        "    background: #666;"
+        "    min-height: 20px;"
+        "    border-radius: 3px;"
+        "}"
+        "QScrollBar::handle:vertical:hover {"
+        "    background: #888;"
+        "}"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
+        "    height: 0px;"
+        "}"
+        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {"
+        "    background: none;"
+        "}"
+    );
+    
+    clipboardContainer = new QWidget();
+    clipboardContainer->setStyleSheet("background: transparent;");
+    clipboardEntriesLayout = new QVBoxLayout(clipboardContainer);
+    clipboardEntriesLayout->setSpacing(15);
+    clipboardEntriesLayout->setAlignment(Qt::AlignTop);
+    
+    clipboardScrollArea->setWidget(clipboardContainer);
+    clipboardLayout->addWidget(clipboardScrollArea);
+    
+    loadClipboardEntries();
     
     contentStack->addWidget(homePage);
     contentStack->addWidget(logsPage);
@@ -268,7 +341,10 @@ void MainWindow::switchToPage(int index) {
             loadScreenshots(); 
             break;
         case 3: btnTrajectory->setActive(true); break;
-        case 4: btnClipboard->setActive(true); break;
+        case 4: 
+            btnClipboard->setActive(true); 
+            loadClipboardEntries();
+            break;
     }
     
     targetPageIndex = index;
@@ -557,4 +633,112 @@ void MainWindow::clearScreenshotsDirectory() {
             dir.remove(dirFile);
         }
     }
+}
+
+void MainWindow::loadClipboardEntries() {
+
+    QLayoutItem *child;
+    while ((child = clipboardEntriesLayout->takeAt(0)) != 0) {
+        delete child->widget();
+        delete child;
+    }
+    
+    QFile file("clipboard.txt");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QLabel *emptyLabel = new QLabel("NO CLIPBOARD ENTRIES YET", this);
+        emptyLabel->setStyleSheet(
+            "QLabel { "
+            "   color: #666; "
+            "   font-size: 24px; "
+            "   font-weight: bold; "
+            "   font-family: 'Arial Black'; "
+            "}"
+        );
+        emptyLabel->setAlignment(Qt::AlignCenter);
+        clipboardEntriesLayout->addWidget(emptyLabel);
+        return;
+    }
+    
+    QTextStream in(&file);
+    QStringList lines;
+    while (!in.atEnd()) {
+        QString line = in.readLine();
+        if (!line.isEmpty()) {
+            lines.prepend(line); 
+        }
+    }
+    file.close();
+    
+    if (lines.isEmpty()) {
+        QLabel *emptyLabel = new QLabel("NO CLIPBOARD ENTRIES YET", this);
+        emptyLabel->setStyleSheet(
+            "QLabel { "
+            "   color: #666; "
+            "   font-size: 24px; "
+            "   font-weight: bold; "
+            "   font-family: 'Arial Black'; "
+            "}"
+        );
+        emptyLabel->setAlignment(Qt::AlignCenter);
+        clipboardEntriesLayout->addWidget(emptyLabel);
+        return;
+    }
+    
+    QStringList colors = {"#FF0090", "#00D9FF", "#FFD600", "#00FF85"};
+    int colorIndex = 0;
+    
+    for (const QString &line : lines) {
+        QStringList parts = line.split(" | ", Qt::SkipEmptyParts);
+        if (parts.size() < 2) continue;
+        
+        QString timestamp = parts[0];
+        QString clipText = parts.mid(1).join(" | ");
+        QString borderColor = colors[colorIndex % colors.size()];
+        colorIndex++;
+        
+        QWidget *entryWidget = new QWidget();
+        entryWidget->setStyleSheet(QString(
+            "QWidget { "
+            "   background-color: white; "
+            "   border: 4px solid %1; "
+            "}"
+        ).arg(borderColor));
+        
+        QVBoxLayout *entryLayout = new QVBoxLayout(entryWidget);
+        entryLayout->setContentsMargins(15, 15, 15, 15);
+        entryLayout->setSpacing(8);
+        
+        QLabel *timeLabel = new QLabel(timestamp);
+        timeLabel->setStyleSheet(QString(
+            "QLabel { "
+            "   color: %1; "
+            "   font-size: 12px; "
+            "   font-weight: bold; "
+            "   background: transparent; "
+            "   border: none; "
+            "}"
+        ).arg(borderColor));
+        
+        QLabel *textLabel = new QLabel(clipText);
+        textLabel->setStyleSheet(
+            "QLabel { "
+            "   color: black; "
+            "   font-size: 14px; "
+            "   background: transparent; "
+            "   border: none; "
+            "}"
+        );
+        textLabel->setWordWrap(true);
+        textLabel->setMaximumHeight(100);
+        textLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        
+        entryLayout->addWidget(timeLabel);
+        entryLayout->addWidget(textLabel);
+        
+        entryWidget->setMinimumHeight(80);
+        
+        clipboardEntriesLayout->addWidget(entryWidget);
+    }
+    
+    clipboardEntriesLayout->addStretch();
 }
