@@ -11,7 +11,12 @@
 #include <QMovie>
 #include <QResizeEvent>
 #include <QPainter>
+#include <QDialog>
+#include <QPainter>
 #include <QPaintEvent>
+#include <QGridLayout>
+#include <QDir>
+#include <QFileSystemWatcher>
 #include "../components/BrutalistButton.hpp"
 #include "../components/AnimatedBorder.hpp"
 
@@ -58,6 +63,8 @@ private:
     void setupSidebar(QHBoxLayout* mainLayout);
     void applyStyles();
     void switchToPage(int index);
+    void loadScreenshots(); 
+    void clearScreenshotsDirectory(); 
 
     QWidget *centralWidget;
     QLabel *titleLabel;
@@ -80,6 +87,10 @@ private:
     QPropertyAnimation *pageTransition;
     int targetPageIndex;
     
+    QWidget* screenshotsContainer;
+    QGridLayout* screenshotsGrid;
+    QFileSystemWatcher *fileWatcher;
+    
     AnimatedBorder *sidebarBorder;
 
     LogsPageWidget *logsPage;
@@ -91,4 +102,8 @@ private:
 protected:
     void resizeEvent(QResizeEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override; 
+
+private:
+    void showFullImage(const QString& filePath);
 };

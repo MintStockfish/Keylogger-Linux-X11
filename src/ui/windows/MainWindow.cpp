@@ -5,10 +5,24 @@
 #include <QFrame>
 #include <QMovie>
 #include <QResizeEvent>
+#include <QScrollArea>
+#include <QGridLayout>
+#include <QDir>
+#include <QDateTime>
+#include <QFileInfo>
 #include <QScrollBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), colorManager(new WindowColorManager()) {
+    clearScreenshotsDirectory(); 
+    
+    fileWatcher = new QFileSystemWatcher(this);
+    fileWatcher->addPath("screenshots");
+
+    connect(fileWatcher, &QFileSystemWatcher::directoryChanged, this, [this](const QString &path) {
+        QTimer::singleShot(500, this, &MainWindow::loadScreenshots);
+    });
+    
     setupUi();
     applyStyles();
     
@@ -79,7 +93,53 @@ void MainWindow::setupUi() {
     homeLayout->addWidget(logoLabel);
     
     logsPage = new LogsPageWidget(this);
-    PlaceholderPageWidget *screenshotsPage = new PlaceholderPageWidget("SCREENSHOTS", "#00D9FF", "Screenshot gallery will appear here", this);
+    // Page 2: Screenshots
+    QWidget *screenshotsPage = new QWidget(this);
+    QVBoxLayout *screenshotsLayout = new QVBoxLayout(screenshotsPage);
+    screenshotsLayout->setContentsMargins(20, 20, 20, 20);
+    screenshotsLayout->setAlignment(Qt::AlignTop);
+    
+    QLabel *screenshotsTitle = new QLabel("SCREENSHOTS", this);
+    screenshotsTitle->setStyleSheet("font-size: 48px; font-weight: bold; color: #666; margin-bottom: 20px;");
+    screenshotsTitle->setAlignment(Qt::AlignCenter);
+    screenshotsLayout->addWidget(screenshotsTitle);
+    
+    QScrollArea *scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setStyleSheet(
+        "QScrollArea { background: transparent; border: none; }"
+        "QScrollBar:vertical {"
+        "    background: #1a1a1a;"
+        "    width: 12px;"
+        "    border: 1px solid #333;"
+        "}"
+        "QScrollBar::handle:vertical {"
+        "    background: #666;"
+        "    min-height: 20px;"
+        "    border-radius: 3px;"
+        "}"
+        "QScrollBar::handle:vertical:hover {"
+        "    background: #888;"
+        "}"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
+        "    height: 0px;"
+        "}"
+        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {"
+        "    background: none;"
+        "}"
+    );
+    
+    screenshotsContainer = new QWidget();
+    screenshotsContainer->setStyleSheet("background: transparent;");
+    screenshotsGrid = new QGridLayout(screenshotsContainer);
+    screenshotsGrid->setSpacing(20);
+    screenshotsGrid->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
+    
+    scrollArea->setWidget(screenshotsContainer);
+    screenshotsLayout->addWidget(scrollArea);
+    
+    loadScreenshots();
     PlaceholderPageWidget *trajectoryPage = new PlaceholderPageWidget("MOUSE TRAJECTORY", "#FFD600", "Mouse trajectory visualization will appear here", this);
     PlaceholderPageWidget *clipboardPage = new PlaceholderPageWidget("CLIPBOARD", "#00FF85", "Clipboard logs will appear here", this);
     
@@ -203,7 +263,10 @@ void MainWindow::switchToPage(int index) {
     
     switch (index) {
         case 1: btnLogs->setActive(true); break;
-        case 2: btnScreenshots->setActive(true); break;
+        case 2: 
+            btnScreenshots->setActive(true); 
+            loadScreenshots(); 
+            break;
         case 3: btnTrajectory->setActive(true); break;
         case 4: btnClipboard->setActive(true); break;
     }
@@ -326,6 +389,172 @@ void MainWindow::paintEvent(QPaintEvent *event) {
         QPixmap currentFrame = bgMovie->currentPixmap();
         if (!currentFrame.isNull()) {
             painter.drawTiledPixmap(rect(), currentFrame);
+        }
+    }
+}
+
+void MainWindow::loadScreenshots() {
+    QDir dir("screenshots");
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+    
+    QStringList filters;
+    filters << "*.png" << "*.jpg" << "*.jpeg";
+    dir.setNameFilters(filters);
+    dir.setSorting(QDir::Time); 
+    
+    QFileInfoList list = dir.entryInfoList();
+    
+
+    QLayoutItem *child;
+    while ((child = screenshotsGrid->takeAt(0)) != 0) {
+        delete child->widget();
+        delete child;
+    }
+    
+    if (list.isEmpty()) {
+        QLabel *emptyLabel = new QLabel("NO SCREENSHOTS YET", this);
+        emptyLabel->setStyleSheet(
+            "QLabel { "
+            "   color: #666; "
+            "   font-size: 24px; "
+            "   font-weight: bold; "
+            "   font-family: 'Arial Black'; "
+            "}"
+        );
+        emptyLabel->setAlignment(Qt::AlignCenter);
+        screenshotsGrid->addWidget(emptyLabel, 0, 0, 1, 3, Qt::AlignCenter); // Span across columns
+        return;
+    }
+    
+    int row = 0;
+    int col = 0;
+    int maxCols = 3;
+    
+    for (const QFileInfo &fileInfo : list) {
+        QWidget *itemWidget = new QWidget();
+        itemWidget->setFixedSize(220, 180);
+        itemWidget->setProperty("filePath", fileInfo.absoluteFilePath()); 
+        itemWidget->installEventFilter(this); 
+        itemWidget->setCursor(Qt::PointingHandCursor); 
+        
+        QVBoxLayout *itemLayout = new QVBoxLayout(itemWidget);
+        itemLayout->setContentsMargins(0, 0, 0, 0);
+        itemLayout->setSpacing(5);
+        
+        // Thumbnail
+        QLabel *thumbLabel = new QLabel();
+        thumbLabel->setFixedSize(220, 140);
+        thumbLabel->setAlignment(Qt::AlignCenter);
+        thumbLabel->setStyleSheet(
+            "QLabel { "
+            "   background-color: black; "
+            "   border: 3px solid #666; "
+            "}"
+        );
+        
+        QPixmap pixmap(fileInfo.absoluteFilePath());
+        if (!pixmap.isNull()) {
+            thumbLabel->setPixmap(pixmap.scaled(214, 134, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        }
+        
+        // Timestamp/Name
+        QLabel *nameLabel = new QLabel(fileInfo.baseName());
+        nameLabel->setAlignment(Qt::AlignCenter);
+        nameLabel->setStyleSheet("color: #666; font-weight: bold; font-size: 12px;");
+        
+        itemLayout->addWidget(thumbLabel);
+        itemLayout->addWidget(nameLabel);
+        
+    screenshotsGrid->addWidget(itemWidget, row, col);
+        
+        col++;
+        if (col >= maxCols) {
+            col = 0;
+            row++;
+        }
+    }
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
+    if (event->type() == QEvent::MouseButtonRelease) {
+        QWidget *widget = qobject_cast<QWidget*>(watched);
+        if (widget && widget->property("filePath").isValid()) {
+            QString filePath = widget->property("filePath").toString();
+            showFullImage(filePath);
+            return true;
+        }
+    }
+    return QMainWindow::eventFilter(watched, event);
+}
+
+void MainWindow::showFullImage(const QString& filePath) {
+    QDialog *viewer = new QDialog(this);
+    viewer->setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
+    viewer->setAttribute(Qt::WA_TranslucentBackground);
+    viewer->resize(width() * 0.9, height() * 0.9);
+    
+    QVBoxLayout *layout = new QVBoxLayout(viewer);
+    layout->setContentsMargins(0, 0, 0, 0);
+    
+    QFrame *container = new QFrame(viewer);
+    container->setStyleSheet(
+        "QFrame { "
+        "   background-color: #000000; "
+        "   border: 4px solid #00D9FF; "
+        "}"
+    );
+    
+    QVBoxLayout *containerLayout = new QVBoxLayout(container);
+    containerLayout->setContentsMargins(20, 20, 20, 20);
+    
+    QLabel *imageLabel = new QLabel(container);
+    imageLabel->setAlignment(Qt::AlignCenter);
+    imageLabel->setStyleSheet("border: none;");
+    
+    QPixmap pixmap(filePath);
+    if (!pixmap.isNull()) {
+        int w = viewer->width() - 60;
+        int h = viewer->height() - 100;
+        imageLabel->setPixmap(pixmap.scaled(w, h, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+
+    QPushButton *closeBtn = new QPushButton("CLOSE", container);
+    closeBtn->setCursor(Qt::PointingHandCursor);
+    closeBtn->setStyleSheet(
+        "QPushButton { "
+        "   background-color: #FF0090; "
+        "   color: black; "
+        "   font-weight: bold; "
+        "   font-size: 16px; "
+        "   border: none; "
+        "   padding: 10px 30px; "
+        "   font-family: 'Arial Black'; "
+        "}"
+        "QPushButton:hover { "
+        "   background-color: #ff33a8; "
+        "}"
+    );
+    connect(closeBtn, &QPushButton::clicked, viewer, &QDialog::accept);
+    
+    containerLayout->addWidget(imageLabel, 1);
+    containerLayout->addSpacing(20);
+    containerLayout->addWidget(closeBtn, 0, Qt::AlignCenter);
+    
+    layout->addWidget(container);
+    
+    viewer->exec();
+    delete viewer;
+}
+
+void MainWindow::clearScreenshotsDirectory() {
+    QDir dir("screenshots");
+    if (dir.exists()) {
+        dir.setNameFilters(QStringList() << "*.png" << "*.jpg" << "*.jpeg");
+        dir.setFilter(QDir::Files);
+        for (QString dirFile : dir.entryList()) {
+            dir.remove(dirFile);
         }
     }
 }
