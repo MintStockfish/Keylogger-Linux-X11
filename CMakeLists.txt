@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
-# Find Qt6
 find_package(Qt6 COMPONENTS Widgets REQUIRED)
 
 # --- CLI Keylogger ---
@@ -35,6 +34,9 @@ add_executable(keylogger-gui
     src/ui/components/BrutalistButton.cpp
     src/ui/components/AnimatedBorder.cpp
     src/ui/components/KeyLogBlock.cpp
+    src/ui/utils/WindowColorManager/WindowColorManager.cpp
+    src/ui/pages/LogsPageWidget/LogsPageWidget.cpp
+    src/ui/pages/PlaceholderPageWidget/PlaceholderPageWidget.cpp
     src/app/application.cpp
     src/utils/common/common.cpp
     src/utils/keyboardEventHelper/keyboardEventHelper.cpp

@@ -5,16 +5,10 @@
 #include <QFrame>
 #include <QMovie>
 #include <QResizeEvent>
-#include "MainWindow.hpp"
-#include <QDebug>
-#include <QHBoxLayout>
-#include <QPixmap>
-#include <QFrame>
-#include <QMovie>
-#include <QResizeEvent>
 #include <QScrollBar>
+
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent) {
+    : QMainWindow(parent), colorManager(new WindowColorManager()) {
     setupUi();
     applyStyles();
     
@@ -47,12 +41,82 @@ MainWindow::~MainWindow() {
         workerThread->wait();
     }
     delete workerThread;
+    delete colorManager;
 }
 
 void MainWindow::setupUi() {
     centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
 
+    setupBackground();
+    
+    QHBoxLayout *mainHLayout = new QHBoxLayout(centralWidget);
+    mainHLayout->setSpacing(0);
+    mainHLayout->setContentsMargins(0, 0, 0, 0);
+    
+    setupSidebar(mainHLayout);
+    
+    contentStack = new QStackedWidget(this);
+    contentStack->setObjectName("contentStack");
+    
+    QWidget *homePage = new QWidget(this);
+    QVBoxLayout *homeLayout = new QVBoxLayout(homePage);
+    homeLayout->setContentsMargins(40, 40, 40, 40);
+    homeLayout->setAlignment(Qt::AlignCenter);
+    
+    logoLabel = new QLabel(this);
+    logoLabel->setAlignment(Qt::AlignCenter);
+    QPixmap logo("../resources/logo.png");
+    if (!logo.isNull()) {
+        int logoSize = qMin(500, qMax(300, width() / 3));
+        logoLabel->setPixmap(logo.scaled(logoSize, logoSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    } else {
+        logoLabel->setText("🔐");
+        logoLabel->setStyleSheet("font-size: 120px;");
+        qDebug() << "Failed to load logo from ../resources/logo.png";
+    }
+    
+    homeLayout->addWidget(logoLabel);
+    
+    logsPage = new LogsPageWidget(this);
+    PlaceholderPageWidget *screenshotsPage = new PlaceholderPageWidget("SCREENSHOTS", "#00D9FF", "Screenshot gallery will appear here", this);
+    PlaceholderPageWidget *trajectoryPage = new PlaceholderPageWidget("MOUSE TRAJECTORY", "#FFD600", "Mouse trajectory visualization will appear here", this);
+    PlaceholderPageWidget *clipboardPage = new PlaceholderPageWidget("CLIPBOARD", "#00FF85", "Clipboard logs will appear here", this);
+    
+    contentStack->addWidget(homePage);
+    contentStack->addWidget(logsPage);
+    contentStack->addWidget(screenshotsPage);
+    contentStack->addWidget(trajectoryPage);
+    contentStack->addWidget(clipboardPage);    
+    
+    contentStack->setCurrentIndex(0);
+    
+    pageOpacity = new QGraphicsOpacityEffect(contentStack);
+    contentStack->setGraphicsEffect(pageOpacity);
+    pageOpacity->setOpacity(1.0);
+    
+    pageTransition = new QPropertyAnimation(pageOpacity, "opacity", this);
+    pageTransition->setDuration(200);
+    pageTransition->setEasingCurve(QEasingCurve::InOutQuad);
+    
+    connect(pageTransition, &QPropertyAnimation::finished, this, [this]() {
+        if (pageOpacity->opacity() == 0.0) {
+            contentStack->setCurrentIndex(targetPageIndex);
+            pageTransition->setStartValue(0.0);
+            pageTransition->setEndValue(1.0);
+            pageTransition->start();
+        }
+    });
+    
+    connect(btnLogs, &BrutalistButton::clicked, this, [this]() { switchToPage(1); });
+    connect(btnScreenshots, &BrutalistButton::clicked, this, [this]() { switchToPage(2); });
+    connect(btnTrajectory, &BrutalistButton::clicked, this, [this]() { switchToPage(3); });
+    connect(btnClipboard, &BrutalistButton::clicked, this, [this]() { switchToPage(4); });
+
+    mainHLayout->addWidget(contentStack, 1);
+}
+
+void MainWindow::setupBackground() {
     bgMovie = new QMovie("../resources/background.gif");
     if (bgMovie->isValid()) {
         connect(bgMovie, &QMovie::frameChanged, this, [this](){
@@ -62,10 +126,9 @@ void MainWindow::setupUi() {
     } else {
         qDebug() << "Failed to load background GIF from ../resources/background.gif";
     }
+}
 
-    QHBoxLayout *mainHLayout = new QHBoxLayout(centralWidget);
-    mainHLayout->setSpacing(0);
-    mainHLayout->setContentsMargins(0, 0, 0, 0);
+void MainWindow::setupSidebar(QHBoxLayout* mainHLayout) {
     QWidget *sidebar = new QWidget(this);
     sidebar->setObjectName("sidebar");
     sidebar->setMinimumWidth(350);  
@@ -117,141 +180,10 @@ void MainWindow::setupUi() {
     sidebarLayout->addStretch();
     
     sidebarLayout->addSpacing(40);
-
-    contentStack = new QStackedWidget(this);
-    contentStack->setObjectName("contentStack");
     
-    QWidget *homePage = new QWidget(this);
-    QVBoxLayout *homeLayout = new QVBoxLayout(homePage);
-    homeLayout->setContentsMargins(40, 40, 40, 40);
-    homeLayout->setAlignment(Qt::AlignCenter);
-    
-    logoLabel = new QLabel(this);
-    logoLabel->setAlignment(Qt::AlignCenter);
-    QPixmap logo("../resources/logo.png");
-    if (!logo.isNull()) {
-        int logoSize = qMin(500, qMax(300, width() / 3));
-        logoLabel->setPixmap(logo.scaled(logoSize, logoSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    } else {
-        logoLabel->setText("🔐");
-        logoLabel->setStyleSheet("font-size: 120px;");
-        qDebug() << "Failed to load logo from ../resources/logo.png";
-    }
-    
-    homeLayout->addWidget(logoLabel);
-    
-    // Page 1: Key Logs
-    QWidget *logsPage = new QWidget(this);
-    QVBoxLayout *logsLayout = new QVBoxLayout(logsPage);
-    logsLayout->setContentsMargins(30, 0, 30, 0); 
-    
-    QLabel *logsTitle = new QLabel("KEY LOGS", this);
-    logsTitle->setStyleSheet("font-size: 48px; font-weight: bold; color: #FF0090;");
-    logsTitle->setAlignment(Qt::AlignCenter);
-    
-    logsLayout->addWidget(logsTitle);
-    logsLayout->addSpacing(20);
-
-    
-    logScrollArea = new QScrollArea(this);
-    logScrollArea->setWidgetResizable(true);
-    logScrollArea->setStyleSheet("background: transparent; border: none;");
-    
-    logContainer = new QWidget();
-    logContainer->setStyleSheet("background: transparent;");
-    logContainerLayout = new QVBoxLayout(logContainer);
-    logContainerLayout->setAlignment(Qt::AlignTop);
-    logContainerLayout->setSpacing(20);
-    
-    logScrollArea->setWidget(logContainer);
-    logsLayout->addWidget(logScrollArea);
-    
-    // Page 2: Screenshots
-    QWidget *screenshotsPage = new QWidget(this);
-    QVBoxLayout *screenshotsLayout = new QVBoxLayout(screenshotsPage);
-    screenshotsLayout->setAlignment(Qt::AlignCenter);
-    
-    QLabel *screenshotsTitle = new QLabel("SCREENSHOTS", this);
-    screenshotsTitle->setStyleSheet("font-size: 48px; font-weight: bold; color: #00D9FF;");
-    screenshotsTitle->setAlignment(Qt::AlignCenter);
-    
-    QLabel *screenshotsDesc = new QLabel("Screenshot gallery will appear here", this);
-    screenshotsDesc->setStyleSheet("font-size: 18px; color: #666;");
-    screenshotsDesc->setAlignment(Qt::AlignCenter);
-    
-    screenshotsLayout->addWidget(screenshotsTitle);
-    screenshotsLayout->addSpacing(20);
-    screenshotsLayout->addWidget(screenshotsDesc);
-    
-    // Page 3: Mouse Trajectory
-    QWidget *trajectoryPage = new QWidget(this);
-    QVBoxLayout *trajectoryLayout = new QVBoxLayout(trajectoryPage);
-    trajectoryLayout->setAlignment(Qt::AlignCenter);
-    
-    QLabel *trajectoryTitle = new QLabel("MOUSE TRAJECTORY", this);
-    trajectoryTitle->setStyleSheet("font-size: 48px; font-weight: bold; color: #FFD600;");
-    trajectoryTitle->setAlignment(Qt::AlignCenter);
-    
-    QLabel *trajectoryDesc = new QLabel("Mouse movement visualization will appear here", this);
-    trajectoryDesc->setStyleSheet("font-size: 18px; color: #666;");
-    trajectoryDesc->setAlignment(Qt::AlignCenter);
-    
-    trajectoryLayout->addWidget(trajectoryTitle);
-    trajectoryLayout->addSpacing(20);
-    trajectoryLayout->addWidget(trajectoryDesc);
-    
-    // Page 4: Clipboard
-    QWidget *clipboardPage = new QWidget(this);
-    QVBoxLayout *clipboardLayout = new QVBoxLayout(clipboardPage);
-    clipboardLayout->setAlignment(Qt::AlignCenter);
-    
-    QLabel *clipboardTitle = new QLabel("CLIPBOARD", this);
-    clipboardTitle->setStyleSheet("font-size: 48px; font-weight: bold; color: #00FF85;");
-    clipboardTitle->setAlignment(Qt::AlignCenter);
-    
-    QLabel *clipboardDesc = new QLabel("Clipboard history will appear here", this);
-    clipboardDesc->setStyleSheet("font-size: 18px; color: #666;");
-    clipboardDesc->setAlignment(Qt::AlignCenter);
-    
-    clipboardLayout->addWidget(clipboardTitle);
-    clipboardLayout->addSpacing(20);
-    clipboardLayout->addWidget(clipboardDesc);
-    
-    // Add all pages to stack
-    contentStack->addWidget(homePage);         
-    contentStack->addWidget(logsPage);         
-    contentStack->addWidget(screenshotsPage);    
-    contentStack->addWidget(trajectoryPage);   
-    contentStack->addWidget(clipboardPage);    
-    
-    contentStack->setCurrentIndex(0);
-    
-    pageOpacity = new QGraphicsOpacityEffect(contentStack);
-    contentStack->setGraphicsEffect(pageOpacity);
-    pageOpacity->setOpacity(1.0);
-    
-    pageTransition = new QPropertyAnimation(pageOpacity, "opacity", this);
-    pageTransition->setDuration(200);
-    pageTransition->setEasingCurve(QEasingCurve::InOutQuad);
-    
-    connect(pageTransition, &QPropertyAnimation::finished, this, [this]() {
-        if (pageOpacity->opacity() == 0.0) {
-            contentStack->setCurrentIndex(targetPageIndex);
-            pageTransition->setStartValue(0.0);
-            pageTransition->setEndValue(1.0);
-            pageTransition->start();
-        }
-    });
-    
-    connect(btnLogs, &BrutalistButton::clicked, this, [this]() { switchToPage(1); });
-    connect(btnScreenshots, &BrutalistButton::clicked, this, [this]() { switchToPage(2); });
-    connect(btnTrajectory, &BrutalistButton::clicked, this, [this]() { switchToPage(3); });
-    connect(btnClipboard, &BrutalistButton::clicked, this, [this]() { switchToPage(4); });
-
     mainHLayout->addWidget(sidebar);
-    mainHLayout->addWidget(contentStack, 1);
     
-    sidebarBorder->setGeometry(sidebar->width() - 3, 0, 6, height());
+    sidebarBorder->setGeometry(sidebar->width() - 3, 0, 6, centralWidget->height());
     sidebarBorder->raise();
 }
 
@@ -288,11 +220,17 @@ void MainWindow::onWindowChanged(const QString& name, const QString& time) {
         currentBlock->markNoInput();
     }
 
-    currentBlock = new KeyLogBlock(name, time, logContainer);
-    logContainerLayout->addWidget(currentBlock);
+    QString color = colorManager->getColorForWindow(name);
+    currentBlock = new KeyLogBlock(name, time, color, logsPage->getLogContainer());
+    logsPage->addLogBlock(currentBlock);
     
-    QScrollBar *sb = logScrollArea->verticalScrollBar();
-    sb->setValue(sb->maximum());
+    QScrollArea* scrollArea = logsPage->getScrollArea();
+    if (scrollArea) {
+        QScrollBar *sb = scrollArea->verticalScrollBar();
+        if (sb) {
+            sb->setValue(sb->minimum());
+        }
+    }
 }
 
 void MainWindow::onKeyPressed(const QString& text) {
@@ -300,11 +238,6 @@ void MainWindow::onKeyPressed(const QString& text) {
         onWindowChanged("Unknown Window", "00:00:00");
     }
     currentBlock->appendLog(text);
-    
-    QScrollBar *sb = logScrollArea->verticalScrollBar();
-    if (sb->value() > sb->maximum() - 100) {
-        sb->setValue(sb->maximum());
-    }
 }
 
 void MainWindow::applyStyles() {

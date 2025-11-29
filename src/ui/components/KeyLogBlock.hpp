@@ -9,7 +9,7 @@ class KeyLogBlock : public QFrame {
     Q_OBJECT
 
 public:
-    explicit KeyLogBlock(const QString& windowName, const QString& time, QWidget* parent = nullptr);
+    explicit KeyLogBlock(const QString& windowName, const QString& time, const QString& headerColor = "#FFD600", QWidget* parent = nullptr);
     void appendLog(const QString& text);
     bool isEmpty() const;
     void markNoInput();
@@ -17,7 +17,7 @@ public:
 private:
     void setupUi(const QString& windowName, const QString& time);
     void updateHeight();
-    void applyStyles();
+    void applyStyles(const QString& headerColor);
 
 protected:
     void resizeEvent(QResizeEvent* event) override;

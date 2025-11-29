@@ -16,10 +16,10 @@
 #include "../components/AnimatedBorder.hpp"
 
 #include <QThread>
-#include <QScrollArea>
-#include <QVBoxLayout>
 #include "../../app/application.hpp"
-#include "../components/KeyLogBlock.hpp"
+#include "../utils/WindowColorManager/WindowColorManager.hpp"
+#include "../pages/LogsPageWidget/LogsPageWidget.hpp"
+#include "../pages/PlaceholderPageWidget/PlaceholderPageWidget.hpp"
 
 class WorkerThread : public QThread {
     Q_OBJECT
@@ -54,6 +54,8 @@ private slots:
 
 private:
     void setupUi();
+    void setupBackground();
+    void setupSidebar(QHBoxLayout* mainLayout);
     void applyStyles();
     void switchToPage(int index);
 
@@ -80,10 +82,9 @@ private:
     
     AnimatedBorder *sidebarBorder;
 
-    QScrollArea *logScrollArea;
-    QWidget *logContainer;
-    QVBoxLayout *logContainerLayout;
+    LogsPageWidget *logsPage;
     KeyLogBlock *currentBlock = nullptr;
+    WindowColorManager *colorManager;
     
     WorkerThread *workerThread;
 

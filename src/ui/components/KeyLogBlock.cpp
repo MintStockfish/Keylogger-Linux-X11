@@ -3,10 +3,10 @@
 #include <QAbstractTextDocumentLayout>
 #include <QResizeEvent>
 
-KeyLogBlock::KeyLogBlock(const QString& windowName, const QString& time, QWidget* parent)
+KeyLogBlock::KeyLogBlock(const QString& windowName, const QString& time, const QString& headerColor, QWidget* parent)
     : QFrame(parent) {
     setupUi(windowName, time);
-    applyStyles();
+    applyStyles(headerColor);
     updateHeight(); 
 }
 
@@ -36,8 +36,8 @@ void KeyLogBlock::setupUi(const QString& windowName, const QString& time) {
     contentArea->setObjectName("contentArea");
     contentArea->setReadOnly(true);
     contentArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    contentArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed); // Changed to Fixed to control height manually
-    contentArea->setMinimumHeight(0); // Start small
+    contentArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    contentArea->setMinimumHeight(0);
     contentArea->setMaximumHeight(16777215); 
 
     mainLayout->addWidget(headerWidget);
@@ -78,7 +78,7 @@ void KeyLogBlock::markNoInput() {
     updateHeight();
 }
 
-void KeyLogBlock::applyStyles() {
+void KeyLogBlock::applyStyles(const QString& headerColor) {
     this->setStyleSheet(
         "KeyLogBlock { "
         "   background-color: #FFFFFF; "
@@ -97,17 +97,17 @@ void KeyLogBlock::applyStyles() {
     timeLabel->setStyleSheet(
         "font-family: 'Courier New', monospace; "
         "font-size: 14px; "
-        "font-weight: bold; "
-        "color: #555555;"
+        "font-weight: 900; "
+        "color: #000000;"
     );
 
     QWidget* headerWidget = this->findChild<QWidget*>("headerWidget");
     if (headerWidget) {
         headerWidget->setStyleSheet(
-            "#headerWidget { "
-            "   background-color: #FFD600; "
+            QString("#headerWidget { "
+            "   background-color: %1; "
             "   border-bottom: 3px solid #000000; "
-            "}"
+            "}").arg(headerColor)
         );
     }
 
