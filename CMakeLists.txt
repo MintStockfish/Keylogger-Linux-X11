@@ -34,6 +34,14 @@ add_executable(keylogger-gui
     src/ui/windows/MainWindow.cpp
     src/ui/components/BrutalistButton.cpp
     src/ui/components/AnimatedBorder.cpp
+    src/ui/components/KeyLogBlock.cpp
+    src/app/application.cpp
+    src/utils/common/common.cpp
+    src/utils/keyboardEventHelper/keyboardEventHelper.cpp
+    src/utils/cyrillicHelper/cyrillicHelper.cpp
+    src/utils/specialKeysHelper/specialKeysHelper.cpp
+    src/utils/windowTrackingHelper/windowTracking.cpp
+    src/utils/mouseTrackerHelper/mouseTracker.cpp
 )
 
 target_link_libraries(keylogger-gui PRIVATE Qt6::Widgets)
@@ -44,8 +52,14 @@ find_program(SCROT_EXECUTABLE NAMES scrot)
 
 if(X11_FOUND)
     target_include_directories(keylogger PRIVATE ${X11_INCLUDE_DIR})
+    target_include_directories(keylogger-gui PRIVATE ${X11_INCLUDE_DIR})
 
     target_link_libraries(keylogger PRIVATE 
+        ${X11_LIBRARIES}
+        ${X11_Xinput_LIB}
+    )
+
+    target_link_libraries(keylogger-gui PRIVATE 
         ${X11_LIBRARIES}
         ${X11_Xinput_LIB}
     )
