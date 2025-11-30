@@ -37,6 +37,7 @@ add_executable(keylogger-gui
     src/ui/utils/WindowColorManager/WindowColorManager.cpp
     src/ui/pages/LogsPageWidget/LogsPageWidget.cpp
     src/ui/pages/PlaceholderPageWidget/PlaceholderPageWidget.cpp
+    src/ui/pages/ClicksPageWidget/ClicksPageWidget.cpp
     src/app/application.cpp
     src/utils/common/common.cpp
     src/utils/keyboardEventHelper/keyboardEventHelper.cpp

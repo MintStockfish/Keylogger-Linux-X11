@@ -11,9 +11,10 @@ class Application {
 public:
     using WindowChangeCallback = std::function<void(const std::string&, const std::string&)>; 
     using KeyPressCallback = std::function<void(const std::string&)>; 
+    using MouseClickCallback = std::function<void(int, int)>;
 
     Application();
-    Application(WindowChangeCallback onWindowChange, KeyPressCallback onKeyPress);
+    Application(WindowChangeCallback onWindowChange, KeyPressCallback onKeyPress, MouseClickCallback onMouseClick = nullptr);
     ~Application();
 
     Application(const Application&) = delete;
@@ -25,8 +26,8 @@ public:
 private:
     void initializeX11();
     void processEvents();
-    void handleAction(const ProcessedEvent& result);
     void updateActiveWindow();
+    void handleAction(const ProcessedEvent& result);
     
     Display* display_ = nullptr;
     Window rootWindow_;
@@ -34,11 +35,13 @@ private:
 
     KeyboardEventHandler keyboardHandler_;
     MouseTracker mouseTracker_;
-    std::string logBuffer_;
+    
     std::string currentWindowName_;
+    std::string logBuffer_;
     
     WindowChangeCallback onWindowChange_;
     KeyPressCallback onKeyPress_;
+    MouseClickCallback onMouseClick_;
 };
 
-#endif 
+#endif

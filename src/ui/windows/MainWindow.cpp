@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QScrollBar>
+#include <cstdio>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), colorManager(new WindowColorManager()) {
@@ -72,6 +73,7 @@ MainWindow::MainWindow(QWidget *parent)
     workerThread = new WorkerThread();
     connect(workerThread, &WorkerThread::windowChanged, this, &MainWindow::onWindowChanged);
     connect(workerThread, &WorkerThread::keyPressed, this, &MainWindow::onKeyPressed);
+    connect(workerThread, &WorkerThread::mouseClicked, this, &MainWindow::onMouseClicked);
     workerThread->start();
 }
 
@@ -166,7 +168,11 @@ void MainWindow::setupUi() {
     screenshotsLayout->addWidget(scrollArea);
     
     loadScreenshots();
-    PlaceholderPageWidget *trajectoryPage = new PlaceholderPageWidget("MOUSE TRAJECTORY", "#FFD600", "Mouse trajectory visualization will appear here", this);
+    
+    std::remove("mouse_log.txt");
+    
+    clicksPage = new ClicksPageWidget(this);
+    clicksPage->loadClicks();
     
     // Page 4: Clipboard
     QWidget *clipboardPage = new QWidget(this);
@@ -219,7 +225,7 @@ void MainWindow::setupUi() {
     contentStack->addWidget(homePage);
     contentStack->addWidget(logsPage);
     contentStack->addWidget(screenshotsPage);
-    contentStack->addWidget(trajectoryPage);
+    contentStack->addWidget(clicksPage);
     contentStack->addWidget(clipboardPage);    
     
     contentStack->setCurrentIndex(0);
@@ -243,7 +249,7 @@ void MainWindow::setupUi() {
     
     connect(btnLogs, &BrutalistButton::clicked, this, [this]() { switchToPage(1); });
     connect(btnScreenshots, &BrutalistButton::clicked, this, [this]() { switchToPage(2); });
-    connect(btnTrajectory, &BrutalistButton::clicked, this, [this]() { switchToPage(3); });
+    connect(btnClicks, &BrutalistButton::clicked, this, [this]() { switchToPage(3); });
     connect(btnClipboard, &BrutalistButton::clicked, this, [this]() { switchToPage(4); });
 
     mainHLayout->addWidget(contentStack, 1);
@@ -302,12 +308,12 @@ void MainWindow::setupSidebar(QHBoxLayout* mainHLayout) {
 
     btnLogs = new BrutalistButton("KEY LOGS", "#FF0090", this);
     btnScreenshots = new BrutalistButton("SCREENSHOTS", "#00D9FF", this);
-    btnTrajectory = new BrutalistButton("MOUSE TRAJECTORY", "#FFD600", this);
+    btnClicks = new BrutalistButton("MOUSE CLICKS", "#FFD600", this);
     btnClipboard = new BrutalistButton("CLIPBOARD", "#00FF85", this);
 
     sidebarLayout->addWidget(btnLogs);
     sidebarLayout->addWidget(btnScreenshots);
-    sidebarLayout->addWidget(btnTrajectory);
+    sidebarLayout->addWidget(btnClicks);
     sidebarLayout->addWidget(btnClipboard);
     
     sidebarLayout->addStretch();
@@ -331,7 +337,7 @@ void MainWindow::switchToPage(int index) {
     
     btnLogs->setActive(false);
     btnScreenshots->setActive(false);
-    btnTrajectory->setActive(false);
+    btnClicks->setActive(false);
     btnClipboard->setActive(false);
     
     switch (index) {
@@ -340,7 +346,9 @@ void MainWindow::switchToPage(int index) {
             btnScreenshots->setActive(true); 
             loadScreenshots(); 
             break;
-        case 3: btnTrajectory->setActive(true); break;
+        case 3: 
+            btnClicks->setActive(true); 
+            break;
         case 4: 
             btnClipboard->setActive(true); 
             loadClipboardEntries();
@@ -377,6 +385,12 @@ void MainWindow::onKeyPressed(const QString& text) {
         onWindowChanged("Unknown Window", "00:00:00");
     }
     currentBlock->appendLog(text);
+}
+
+void MainWindow::onMouseClicked(int x, int y) {
+    if (clicksPage) {
+        clicksPage->addClick(x, y);
+    }
 }
 
 void MainWindow::applyStyles() {

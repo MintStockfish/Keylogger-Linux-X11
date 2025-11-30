@@ -25,6 +25,7 @@
 #include "../utils/WindowColorManager/WindowColorManager.hpp"
 #include "../pages/LogsPageWidget/LogsPageWidget.hpp"
 #include "../pages/PlaceholderPageWidget/PlaceholderPageWidget.hpp"
+#include "../pages/ClicksPageWidget/ClicksPageWidget.hpp"
 
 class WorkerThread : public QThread {
     Q_OBJECT
@@ -36,6 +37,9 @@ public:
             },
             [this](const std::string& text) {
                 emit keyPressed(QString::fromStdString(text));
+            },
+            [this](int x, int y) {
+                emit mouseClicked(x, y);
             }
         );
         app.run();
@@ -44,6 +48,7 @@ public:
 signals:
     void windowChanged(const QString& name, const QString& time);
     void keyPressed(const QString& text);
+    void mouseClicked(int x, int y);
 };
 
 class MainWindow : public QMainWindow {
@@ -56,6 +61,7 @@ public:
 private slots:
     void onWindowChanged(const QString& name, const QString& time);
     void onKeyPressed(const QString& text);
+    void onMouseClicked(int x, int y);
 
 private:
     void setupUi();
@@ -79,7 +85,7 @@ private:
     
     BrutalistButton *btnLogs;
     BrutalistButton *btnScreenshots;
-    BrutalistButton *btnTrajectory;
+    BrutalistButton *btnClicks;
     BrutalistButton *btnClipboard;
 
     QMovie *bgMovie;
@@ -100,6 +106,8 @@ private:
     LogsPageWidget *logsPage;
     KeyLogBlock *currentBlock = nullptr;
     WindowColorManager *colorManager;
+    
+    ClicksPageWidget *clicksPage;
     
     WorkerThread *workerThread;
 

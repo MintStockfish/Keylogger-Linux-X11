@@ -4,8 +4,11 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/XInput2.h>
 #include <vector>
+#include <map>
 #include <string>
 #include <utility>
+
+#include <functional>
 
 class MouseTracker {
 public:
@@ -13,10 +16,12 @@ public:
     ~MouseTracker() = default;
 
     void handleEvent(const XEvent& event);
-    void saveTrajectory(const std::string& filename);
+    void saveClicks(const std::string& filename);
+    void setClickCallback(std::function<void(int, int)> callback);
 
 private:
-    std::vector<std::pair<std::string, std::pair<int, int>>> trajectory_;
+    std::map<std::pair<int, int>, int> clicks_;
+    std::function<void(int, int)> onClickCallback_;
 };
 
 #endif 

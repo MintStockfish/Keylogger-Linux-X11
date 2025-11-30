@@ -3,21 +3,30 @@
 #include <stdexcept>
 #include <functional>
 #include <fstream>
+#include <cstdio>
 
 #include "../utils/common/common.hpp"
 #include "../utils/windowTrackingHelper/windowTracking.hpp"
 
 Application::Application() : keyboardHandler_(nullptr) { 
+    std::remove("mouse_log.txt");
+    
     initializeX11();
     keyboardHandler_ = KeyboardEventHandler(display_);
-    std::cout << "Пассивный перехват запущен. Нажимайте клавиши..." << std::endl;
+    std::cout << "KeyLogger запущен!" << std::endl;
     std::cout << "Нажмите Escape для выхода." << std::endl;
 }
 
-Application::Application(WindowChangeCallback onWindowChange, KeyPressCallback onKeyPress) 
-    : keyboardHandler_(nullptr), onWindowChange_(onWindowChange), onKeyPress_(onKeyPress) {
+Application::Application(WindowChangeCallback onWindowChange, KeyPressCallback onKeyPress, MouseClickCallback onMouseClick) 
+    : keyboardHandler_(nullptr), onWindowChange_(onWindowChange), onKeyPress_(onKeyPress), onMouseClick_(onMouseClick) {
+    std::remove("mouse_log.txt");
+    
     initializeX11();
     keyboardHandler_ = KeyboardEventHandler(display_);
+    
+    if (onMouseClick_) {
+        mouseTracker_.setClickCallback(onMouseClick_);
+    }
 }
 
 Application::~Application() {
@@ -26,7 +35,7 @@ Application::~Application() {
         trimLeadingNewlines(logBuffer_);
         writeLog(logBuffer_, "log.txt"); 
         std::cout << "Лог записан в log.txt" << std::endl;
-        mouseTracker_.saveTrajectory("mouse_log.txt");
+        mouseTracker_.saveClicks("mouse_log.txt");
         XCloseDisplay(display_);
     }
 }
@@ -43,7 +52,7 @@ void Application::initializeX11() {
     unsigned char mask_bytes[XI_LASTEVENT / 8 + 1] = {0}; 
     XISetMask(mask_bytes, XI_RawKeyPress);
     XISetMask(mask_bytes, XI_RawKeyRelease);
-    XISetMask(mask_bytes, XI_RawMotion);
+    XISetMask(mask_bytes, XI_RawButtonPress);
     
     evmask.deviceid = XIAllMasterDevices; 
     evmask.mask_len = sizeof(mask_bytes);
