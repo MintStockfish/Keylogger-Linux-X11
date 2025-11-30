@@ -52,6 +52,14 @@ void KeyLogBlock::appendLog(const QString& text) {
     updateHeight();
 }
 
+QString KeyLogBlock::getLogText() const {
+    return contentArea->toPlainText();
+}
+
+QString KeyLogBlock::getHeader() const {
+    return QString("[%1] [%2]").arg(headerLabel->text()).arg(timeLabel->text());
+}
+
 void KeyLogBlock::updateHeight() {
     contentArea->document()->setTextWidth(contentArea->viewport()->width());
 

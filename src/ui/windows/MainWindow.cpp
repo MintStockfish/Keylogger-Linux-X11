@@ -304,11 +304,12 @@ void MainWindow::setupSidebar(QHBoxLayout* mainHLayout) {
     
     sidebarLayout->addWidget(recordingWidget);
     
-    sidebarLayout->addSpacing(100);
-
     btnLogs = new BrutalistButton("KEY LOGS", "#FF0090", this);
+    
     btnScreenshots = new BrutalistButton("SCREENSHOTS", "#00D9FF", this);
+    
     btnClicks = new BrutalistButton("MOUSE CLICKS", "#FFD600", this);
+    
     btnClipboard = new BrutalistButton("CLIPBOARD", "#00FF85", this);
 
     sidebarLayout->addWidget(btnLogs);
@@ -318,7 +319,14 @@ void MainWindow::setupSidebar(QHBoxLayout* mainHLayout) {
     
     sidebarLayout->addStretch();
     
-    sidebarLayout->addSpacing(40);
+    btnSaveData = new BrutalistButton("SAVE DATA", "#4CAF50", this);
+    btnSaveData->setStyleSheet(
+        "QPushButton { font-size: 14px; }"
+    );
+    connect(btnSaveData, &BrutalistButton::clicked, this, &MainWindow::saveAllData);
+    sidebarLayout->addWidget(btnSaveData);
+    
+    sidebarLayout->addSpacing(10);
     
     mainHLayout->addWidget(sidebar);
     
@@ -391,6 +399,79 @@ void MainWindow::onMouseClicked(int x, int y) {
     if (clicksPage) {
         clicksPage->addClick(x, y);
     }
+}
+
+void MainWindow::saveAllData() {
+    QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm-ss");
+    QString basePath = "saved_data/" + timestamp;
+    
+    QDir dir;
+    if (!dir.mkpath(basePath)) {
+        qDebug() << "Failed to create directory:" << basePath;
+        return;
+    }
+    
+    QFile logFile("log.txt");
+    if (logFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&logFile);
+        
+        if (logsPage) {
+            QWidget* logContainer = logsPage->getLogContainer();
+            QList<KeyLogBlock*> blocks = logContainer->findChildren<KeyLogBlock*>();
+            
+            for (KeyLogBlock* block : blocks) {
+                if (block && !block->isEmpty()) {
+                    out << block->getHeader() << "\n";
+                    out << block->getLogText() << "\n\n";
+                }
+            }
+        }
+        
+        logFile.close();
+    }
+    
+    if (clicksPage) {
+        QFile clickFile("mouse_log.txt");
+        if (clickFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream out(&clickFile);
+            for (const auto& point : clicksPage->getClicks()) {
+                out << "X: " << point.x << ", Y: " << point.y << " - Count: " << point.count << "\n";
+            }
+            clickFile.close();
+        }
+    }
+    
+    auto copyFile = [](const QString& src, const QString& dest) -> bool {
+        if (!QFile::exists(src)) {
+            qDebug() << "Source file does not exist:" << src;
+            return false;
+        }
+        QFile::copy(src, dest);
+        return true;
+    };
+    
+    auto copyDir = [](const QString& srcPath, const QString& destPath) -> bool {
+        QDir srcDir(srcPath);
+        if (!srcDir.exists()) return false;
+        
+        QDir destDir;
+        if (!destDir.mkpath(destPath)) return false;
+        
+        QFileInfoList files = srcDir.entryInfoList(QDir::Files);
+        for (const QFileInfo& file : files) {
+            QString destFile = destPath + "/" + file.fileName();
+            QFile::copy(file.absoluteFilePath(), destFile);
+        }
+        return true;
+    };
+    
+    copyFile("log.txt", basePath + "/log.txt");
+    copyFile("mouse_log.txt", basePath + "/mouse_log.txt");
+    copyFile("clipboard.txt", basePath + "/clipboard.txt");
+    
+    copyDir("screenshots", basePath + "/screenshots");
+    
+    qDebug() << "Data saved to:" << basePath;
 }
 
 void MainWindow::applyStyles() {

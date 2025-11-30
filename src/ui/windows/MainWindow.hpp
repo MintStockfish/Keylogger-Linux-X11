@@ -62,6 +62,7 @@ private slots:
     void onWindowChanged(const QString& name, const QString& time);
     void onKeyPressed(const QString& text);
     void onMouseClicked(int x, int y);
+    void saveAllData();
 
 private:
     void setupUi();
@@ -87,6 +88,7 @@ private:
     BrutalistButton *btnScreenshots;
     BrutalistButton *btnClicks;
     BrutalistButton *btnClipboard;
+    BrutalistButton *btnSaveData;
 
     QMovie *bgMovie;
     

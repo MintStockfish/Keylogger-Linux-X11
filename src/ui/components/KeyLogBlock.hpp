@@ -11,6 +11,8 @@ class KeyLogBlock : public QFrame {
 public:
     explicit KeyLogBlock(const QString& windowName, const QString& time, const QString& headerColor = "#FFD600", QWidget* parent = nullptr);
     void appendLog(const QString& text);
+    QString getLogText() const;
+    QString getHeader() const;
     bool isEmpty() const;
     void markNoInput();
 

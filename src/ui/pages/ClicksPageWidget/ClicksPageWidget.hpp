@@ -22,6 +22,8 @@ public:
     void loadClicks();
     void addClick(int x, int y);
     
+    const std::vector<ClickPoint>& getClicks() const { return clicks; }
+    
     qreal offset() const { return m_offset; }
     void setOffset(qreal offset);
 

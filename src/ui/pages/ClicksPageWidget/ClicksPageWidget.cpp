@@ -177,7 +177,7 @@ void ClicksPageWidget::paintEvent(QPaintEvent *event) {
     for (const auto& point : clicks) {
         int px = offsetX + (int)(point.x * scale);
         int py = offsetY + (int)(point.y * scale);
-        .
+        
         int radius = 3 + std::min(point.count, 10); 
         
         QColor color = getColorForCount(point.count);
