@@ -34,6 +34,7 @@ add_executable(keylogger-gui
     src/ui/components/BrutalistButton.cpp
     src/ui/components/AnimatedBorder.cpp
     src/ui/components/KeyLogBlock.cpp
+    src/ui/widgets/NotificationWidget.cpp
     src/ui/utils/WindowColorManager/WindowColorManager.cpp
     src/ui/pages/LogsPageWidget/LogsPageWidget.cpp
     src/ui/pages/PlaceholderPageWidget/PlaceholderPageWidget.cpp

@@ -19,6 +19,7 @@
 #include <QFileSystemWatcher>
 #include "../components/BrutalistButton.hpp"
 #include "../components/AnimatedBorder.hpp"
+#include "../widgets/NotificationWidget.hpp"
 
 #include <QThread>
 #include "../../app/application.hpp"
@@ -73,6 +74,7 @@ private:
     void loadScreenshots(); 
     void clearScreenshotsDirectory(); 
     void loadClipboardEntries();
+    void showSaveNotification();
 
     QWidget *centralWidget;
     QLabel *titleLabel;
@@ -104,6 +106,7 @@ private:
     QVBoxLayout* clipboardEntriesLayout;
     
     AnimatedBorder *sidebarBorder;
+    NotificationWidget *notificationWidget;
 
     LogsPageWidget *logsPage;
     KeyLogBlock *currentBlock = nullptr;

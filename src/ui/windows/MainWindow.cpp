@@ -253,6 +253,8 @@ void MainWindow::setupUi() {
     connect(btnClipboard, &BrutalistButton::clicked, this, [this]() { switchToPage(4); });
 
     mainHLayout->addWidget(contentStack, 1);
+    
+    notificationWidget = new NotificationWidget(this);
 }
 
 void MainWindow::setupBackground() {
@@ -472,6 +474,18 @@ void MainWindow::saveAllData() {
     copyDir("screenshots", basePath + "/screenshots");
     
     qDebug() << "Data saved to:" << basePath;
+    
+    showSaveNotification();
+}
+
+void MainWindow::showSaveNotification() {
+    if (notificationWidget) {
+        int x = (width() - 400) / 2;
+        int y = 50;  
+        
+        notificationWidget->move(x, y);
+        notificationWidget->showNotification("DATA SAVED SUCCESSFULLY");
+    }
 }
 
 void MainWindow::applyStyles() {
