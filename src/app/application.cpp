@@ -121,9 +121,16 @@ void Application::handleAction(const ProcessedEvent& result) {
             std::string clipboard_text = exec("xclip -selection clipboard -o");
             std::cout << "Copied: " << clipboard_text << std::endl;
             
+            std::string escaped_text = clipboard_text;
+            size_t pos = 0;
+            while ((pos = escaped_text.find('\n', pos)) != std::string::npos) {
+                escaped_text.replace(pos, 1, "\\n");
+                pos += 2;
+            }
+            
             std::ofstream clipFile("clipboard.txt", std::ios::app);
             if (clipFile.is_open()) {
-                clipFile << getCurrentTimestamp() << " | " << clipboard_text << "\n";
+                clipFile << getCurrentTimestamp() << " | " << escaped_text << "\n";
                 clipFile.close();
             }
             break;

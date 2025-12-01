@@ -75,7 +75,11 @@ private:
     void clearScreenshotsDirectory(); 
     void loadClipboardEntries();
     void showSaveNotification();
+    void updateScreenshotsLayout(); 
+protected:
+    void resizeEvent(QResizeEvent *event) override;
 
+private:
     QWidget *centralWidget;
     QLabel *titleLabel;
     QLabel *logoLabel;
@@ -110,6 +114,8 @@ private:
 
     LogsPageWidget *logsPage;
     KeyLogBlock *currentBlock = nullptr;
+    QList<QWidget*> screenshotWidgets; 
+    
     WindowColorManager *colorManager;
     
     ClicksPageWidget *clicksPage;
@@ -117,7 +123,6 @@ private:
     WorkerThread *workerThread;
 
 protected:
-    void resizeEvent(QResizeEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override; 
 

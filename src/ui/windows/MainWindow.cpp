@@ -564,6 +564,7 @@ void MainWindow::resizeEvent(QResizeEvent *event) {
             sidebarBorder->setGeometry(sidebar->width() - 3, 0, 6, height());
         }
     }
+    updateScreenshotsLayout();
 }
 
 void MainWindow::paintEvent(QPaintEvent *event) {
@@ -574,6 +575,38 @@ void MainWindow::paintEvent(QPaintEvent *event) {
         QPixmap currentFrame = bgMovie->currentPixmap();
         if (!currentFrame.isNull()) {
             painter.drawTiledPixmap(rect(), currentFrame);
+        }
+    }
+}
+
+
+
+void MainWindow::updateScreenshotsLayout() {
+    if (screenshotWidgets.isEmpty()) return;
+
+    QLayoutItem *child;
+    while ((child = screenshotsGrid->takeAt(0)) != 0) {
+        delete child;
+    }
+
+    int thumbnailWidth = 220;
+    int spacing = 20;
+    int containerWidth = screenshotsContainer->width();
+    if (containerWidth < 100) containerWidth = width() - 100; 
+    
+    int maxCols = qMax(1, (containerWidth + spacing) / (thumbnailWidth + spacing));
+    
+    int row = 0;
+    int col = 0;
+    
+    for (QWidget *widget : screenshotWidgets) {
+        screenshotsGrid->addWidget(widget, row, col);
+        widget->show(); 
+        
+        col++;
+        if (col >= maxCols) {
+            col = 0;
+            row++;
         }
     }
 }
@@ -591,7 +624,9 @@ void MainWindow::loadScreenshots() {
     
     QFileInfoList list = dir.entryInfoList();
     
-
+    qDeleteAll(screenshotWidgets);
+    screenshotWidgets.clear();
+    
     QLayoutItem *child;
     while ((child = screenshotsGrid->takeAt(0)) != 0) {
         delete child->widget();
@@ -609,13 +644,19 @@ void MainWindow::loadScreenshots() {
             "}"
         );
         emptyLabel->setAlignment(Qt::AlignCenter);
-        screenshotsGrid->addWidget(emptyLabel, 0, 0, 1, 3, Qt::AlignCenter); // Span across columns
+        screenshotsGrid->addWidget(emptyLabel, 0, 0, 1, 3, Qt::AlignCenter); 
         return;
     }
     
+    int thumbnailWidth = 220;
+    int spacing = 20;
+    int containerWidth = screenshotsContainer->width();
+    if (containerWidth < 100) containerWidth = width() - 100; 
+    
+    int maxCols = qMax(1, (containerWidth + spacing) / (thumbnailWidth + spacing));
+    
     int row = 0;
     int col = 0;
-    int maxCols = 3;
     
     for (const QFileInfo &fileInfo : list) {
         QWidget *itemWidget = new QWidget();
@@ -628,7 +669,6 @@ void MainWindow::loadScreenshots() {
         itemLayout->setContentsMargins(0, 0, 0, 0);
         itemLayout->setSpacing(5);
         
-        // Thumbnail
         QLabel *thumbLabel = new QLabel();
         thumbLabel->setFixedSize(220, 140);
         thumbLabel->setAlignment(Qt::AlignCenter);
@@ -652,14 +692,10 @@ void MainWindow::loadScreenshots() {
         itemLayout->addWidget(thumbLabel);
         itemLayout->addWidget(nameLabel);
         
-    screenshotsGrid->addWidget(itemWidget, row, col);
-        
-        col++;
-        if (col >= maxCols) {
-            col = 0;
-            row++;
-        }
+        screenshotWidgets.append(itemWidget);
     }
+    
+    updateScreenshotsLayout();
 }
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
@@ -793,7 +829,7 @@ void MainWindow::loadClipboardEntries() {
         return;
     }
     
-    QStringList colors = {"#FF0090", "#00D9FF", "#FFD600", "#00FF85"};
+    QStringList bgColors = {"#FFB3D9", "#B3E5FF", "#FFE680", "#B3FFD9"}; 
     int colorIndex = 0;
     
     for (const QString &line : lines) {
@@ -802,49 +838,68 @@ void MainWindow::loadClipboardEntries() {
         
         QString timestamp = parts[0];
         QString clipText = parts.mid(1).join(" | ");
-        QString borderColor = colors[colorIndex % colors.size()];
+        
+        clipText.replace("\\n", "\n");
+        
+        QString bgColor = bgColors[colorIndex % bgColors.size()];
         colorIndex++;
         
         QWidget *entryWidget = new QWidget();
+        entryWidget->setAutoFillBackground(true);
+        entryWidget->setAttribute(Qt::WA_StyledBackground, true);
         entryWidget->setStyleSheet(QString(
             "QWidget { "
-            "   background-color: white; "
-            "   border: 4px solid %1; "
+            "   background-color: %1; "
+            "   border: 3px solid #000000; "
             "}"
-        ).arg(borderColor));
+        ).arg(bgColor));
         
         QVBoxLayout *entryLayout = new QVBoxLayout(entryWidget);
-        entryLayout->setContentsMargins(15, 15, 15, 15);
-        entryLayout->setSpacing(8);
+        entryLayout->setContentsMargins(20, 15, 20, 15);
+        entryLayout->setSpacing(10);
         
-        QLabel *timeLabel = new QLabel(timestamp);
-        timeLabel->setStyleSheet(QString(
+        QLabel *timeLabel = new QLabel("🕐 " + timestamp);
+        timeLabel->setStyleSheet(
             "QLabel { "
-            "   color: %1; "
+            "   color: #666666; "
             "   font-size: 12px; "
             "   font-weight: bold; "
-            "   background: transparent; "
-            "   border: none; "
-            "}"
-        ).arg(borderColor));
-        
-        QLabel *textLabel = new QLabel(clipText);
-        textLabel->setStyleSheet(
-            "QLabel { "
-            "   color: black; "
-            "   font-size: 14px; "
+            "   font-family: 'Arial'; "
             "   background: transparent; "
             "   border: none; "
             "}"
         );
+        
+        QLabel *textLabel = new QLabel(clipText);
+        textLabel->setStyleSheet(
+            "QLabel { "
+            "   color: #000000; "
+            "   font-size: 14px; "
+            "   font-family: 'Arial'; "
+            "   background: transparent; "
+            "   border: none; "
+            "   line-height: 1.4; "
+            "}"
+        );
         textLabel->setWordWrap(true);
-        textLabel->setMaximumHeight(100);
+        textLabel->setMaximumHeight(200);
         textLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
         
+        QFrame *separator = new QFrame();
+        separator->setFrameShape(QFrame::HLine);
+        separator->setStyleSheet(
+            "QFrame { "
+            "   background-color: #000000; "
+            "   border: none; "
+            "   max-height: 2px; "
+            "}"
+        );
+        
         entryLayout->addWidget(timeLabel);
+        entryLayout->addWidget(separator);
         entryLayout->addWidget(textLabel);
         
-        entryWidget->setMinimumHeight(80);
+        entryWidget->setMinimumHeight(100);
         
         clipboardEntriesLayout->addWidget(entryWidget);
     }

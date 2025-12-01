@@ -181,10 +181,10 @@ void ClicksPageWidget::paintEvent(QPaintEvent *event) {
         int radius = 3 + std::min(point.count, 10); 
         
         QColor color = getColorForCount(point.count);
-        color.setAlpha(200);
+        color.setAlpha(220);
         
         painter.setBrush(color);
-        painter.setPen(Qt::NoPen);
+        painter.setPen(QPen(QColor(50, 50, 50), 2));
         painter.drawEllipse(QPoint(px, py), radius, radius);
     }
 }
