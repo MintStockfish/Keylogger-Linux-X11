@@ -3,7 +3,7 @@
 ![Language](https://img.shields.io/badge/Language-C%2B%2B-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Linux-lightgrey.svg)
 
-A passive keylogger for Linux operating systems using the X11 display server. This tool is written in modern C++ and designed as an educational example of how to interact with the X server at a low level.
+A passive keylogger for Linux operating systems using the X11 display server. This tool is written in modern C++ and offers both a CLI and a Qt6-based GUI. It is designed as an educational example of how to interact with the X server at a low level.
 
 The program captures keystrokes using the `XInput2` extension, correctly handling various keyboard layouts (e.g., Cyrillic, Latin) and modifier states (Shift, Caps Lock). It also tracks the active window title, captures clipboard content on `Ctrl+C`, takes screenshots when the `PrintScreen` key is pressed, and records the mouse cursor trajectory.
 
@@ -16,9 +16,10 @@ The program captures keystrokes using the `XInput2` extension, correctly handlin
 - **Active Window Tracking:** Logs the title of the window where the user is currently typing.
 - **Clipboard Capture:** Logs the content of the clipboard when `Ctrl+C` is pressed.
 - **Screenshot on PrintScreen:** Automatically saves a screenshot to the `screenshots/` directory when the `PrintScreen` key is hit.
-- **Mouse Trajectory Tracking:** Records the path of the mouse cursor and saves it to `mouse_log.txt` upon exit.
+- **Mouse Coordinates Tracking:** Records the coordinates of the mouse cursor when it clicksand saves it to `mouse_log.txt` upon exit.
 - **Clean Output:** All captured data is saved to a `log.txt` file in the project's root directory.
 - **Safe Exit:** The program terminates gracefully when the `Escape` key is pressed.
+- **Modern GUI:** A brutalist-style GUI built with Qt6 to visualize logs and mouse clicks.
 
 ## Prerequisites
 
@@ -26,6 +27,7 @@ To build and run this project, you will need:
 
 - **CMake** (version 3.10 or higher)
 - A modern C++ compiler (e.g., **g++** or **clang**)
+- **Qt6** (Core and Widgets modules)
 - Development libraries for **X11** and **XInput2**
 - Helper tools: **`xclip`** (for clipboard access) and **`scrot`** (for screenshots)
 
@@ -35,19 +37,19 @@ To build and run this project, you will need:
 
 ```bash
 sudo apt update
-sudo apt install build-essential cmake libx11-dev libxi-dev xclip scrot
+sudo apt install build-essential cmake libx11-dev libxi-dev xclip scrot qt6-base-dev
 ```
 
 #### On Fedora / CentOS / RHEL:
 
 ```bash
-sudo dnf install cmake gcc-c++ libX11-devel libXi-devel xclip scrot
+sudo dnf install cmake gcc-c++ libX11-devel libXi-devel xclip scrot qt6-qtbase-devel
 ```
 
 #### On Arch Linux:
 
 ```bash
-sudo pacman -S base-devel cmake libx11 libxi xclip scrot
+sudo pacman -S base-devel cmake libx11 libxi xclip scrot qt6-base
 ```
 
 ## Building and Running
@@ -74,10 +76,18 @@ sudo pacman -S base-devel cmake libx11 libxi xclip scrot
     ```
 
 4.  **Run the keylogger:**
-    The executable `keylogger` will be created in the `build` directory.
+    The project builds two executables in the `build` directory:
+    - `keylogger`: The standard CLI version.
+    - `keylogger-gui`: The GUI version with visual logs.
 
+    To run the CLI version:
     ```bash
     ./keylogger
+    ```
+
+    To run the GUI version:
+    ```bash
+    ./keylogger-gui
     ```
 
     The program will now run in your terminal, capturing input passively. The log file (`log.txt`) and `screenshots/` directory will be created in the build folder.
@@ -100,10 +110,17 @@ The project follows a clean, modular structure to separate concerns.
 ├── CMakeLists.txt              # CMake build script
 ├── README.md                   # This file
 ├── src/                        # Source code directory
-│   ├── main.cpp                # Main entry point - creates and runs the Application
+│   ├── main_ui.cpp             # Main entry point for GUI
+│   ├── keylogger.cpp           # Main entry point for CLI
 │   ├── app/                    # Core application logic
 │   │   ├── application.hpp
 │   │   └── application.cpp
+│   ├── ui/                     # Qt6 GUI Components
+│   │   ├── main_ui.cpp
+│   │   ├── windows/            # Main application windows
+│   │   ├── pages/              # UI Pages (Logs, Clicks, etc.)
+│   │   ├── components/         # Reusable UI components (Buttons, Blocks)
+│   │   └── widgets/            # Smaller widgets
 │   └── utils/                  # Helper modules and utilities
 │       ├── common/             # Common functions (exec, timestamp, etc.)
 │       ├── keyboardEventHelper/  # Logic for processing keyboard events
@@ -113,3 +130,14 @@ The project follows a clean, modular structure to separate concerns.
 │       └── mouseTrackerHelper/   # Logic for tracking mouse trajectory
 └── .gitignore                  # Git ignore file
 ```
+
+## Screenshots
+
+<p align="center">
+  <img src="Pictures/photo_2025-12-10_21-45-37.jpg" width="45%" alt="Screenshot 1">
+  <img src="Pictures/photo_2025-12-10_21-44-46.jpg" width="45%" alt="Screenshot 2">
+  <img src="Pictures/photo_2025-12-10_21-45-21.jpg" width="45%" alt="Screenshot 3">
+  <img src="Pictures/photo_2025-12-10_21-45-17.jpg" width="45%" alt="Screenshot 4">
+  <img src="Pictures/photo_2025-12-10_21-45-10.jpg" width="45%" alt="Screenshot 5">
+  <img src="Pictures/photo_2025-12-10_21-45-14.jpg" width="45%" alt="Screenshot 6">
+</p>
